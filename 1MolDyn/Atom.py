@@ -3,7 +3,7 @@
 """
 Created on Fri Feb  9 12:10:39 2024
 
-@author: konstantinos
+@authors: konstantinos & diederick
 """
 
 import numpy as np
@@ -46,7 +46,7 @@ class Atom:
             temp_r = 0            
             for j in range(c.dims):
                 # MIC
-                diff = self.oldpos[j] - particles[i].oldpos[j]
+                diff = self.oldpos[j] - particle.oldpos[j]
                 diff -= c.boxL * np.round(diff * c.inv_boxL,0) # 0 in, 1 out
                 temp_r += diff**2
             
@@ -78,9 +78,7 @@ class Atom:
     def am_i_in_the_box(self):
         # NOTE: Maybe this can be phrased more succintly
         for d in range(c.dims):
-            if self.pos[d] > c.boxL:
-                self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)
-            if self.pos[d] < 0:
+            if self.pos[d] > c.boxL or self.pos[d] < 0:
                 self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)
         self.oldpos = self.pos
                 

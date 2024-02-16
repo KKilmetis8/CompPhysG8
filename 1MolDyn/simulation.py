@@ -3,7 +3,7 @@
 """
 Created on Thu Feb 15 14:52:31 2024
 
-@author: konstantinos
+@authors: konstantinos & diederick
 """
 
 # Vanilla Imports
@@ -13,45 +13,70 @@ import matplotlib.pyplot as plt
 # Chocolate Imports
 import prelude as c
 from Atom import Atom
+from Particles import Particles
+from os import listdir, makedirs, system
 
-# NOTE: Use os to mkdir and check biggest simnumber
-# this is a saving fucntion inside simulation class
-simnum = 1
+# this is a saving function inside simulation class
+simnum = int(max([float(file[3:]) for file in listdir('sims')])+1)
+simnum = 2
+
+def make_movie(simnum=simnum, name='moive'):
+    system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 30 sims/sim{simnum}/{name}.mp4')
+
 
 plt.ioff()
 def make_plot(figno, particles):
     fig, ax = plt.subplots(figsize = (6,5))
     
-    # NOTE: Make particles into a class so this isn't trash
-    for particle in particles:
-        ax.scatter(particle.pos[0], particle.pos[1], c = particle.color)
-        # Add arrows
-     
-    ax.set_xlim(-0.1 * c.boxL, 1.1 * c.boxL)
-    ax.set_ylim(-0.1 * c.boxL, 1.1 * c.boxL)
-    ax.axhline(0, c = 'k', linestyle = '--')
-    ax.axhline(c.boxL, c = 'k', linestyle = '--')
-    ax.axvline(0, c = 'k', linestyle = '--')
-    ax.axvline(c.boxL, c = 'k', linestyle = '--')
+    #get relevant info
+    pos, vels, colors = particles.positions, particles.velocities, particles.colors
+    #calculate the normalised velocity coordinates for arrows
+    vnorms = vels/np.linalg.norm(vels, axis=0)
+    
+    #plot particles
+    ax.scatter(pos[0], pos[1], c = colors, zorder=3)
+    
+    #plot arrows
+    ax.quiver(pos[0], pos[1], vnorms[0], vnorms[1], angles='xy', zorder=2)
+    
+    #plot the box
+    ax.set_xlim(-0.1 * c.boxL, 1.1 * c.boxL), ax.set_ylim(-0.1 * c.boxL, 1.1 * c.boxL)
+    ax.axhline(0, c = 'k', linestyle = '--'), ax.axhline(c.boxL, c = 'k', linestyle = '--')
+    ax.axvline(0, c = 'k', linestyle = '--'), ax.axvline(c.boxL, c = 'k', linestyle = '--')
+    
 
-    plt.savefig(f'figs/sim{simnum}-{plotcounter}')
+    plt.savefig(f'sims/sim{simnum}/fig{figno}')
     plt.close(fig)
-# Init random number generator
-rng = np.random.default_rng(seed=8)
+
+#Testing
+#Collision
+particles = Particles([Atom(pos = [0.1*c.boxL, 0.5*c.boxL], vel=[0.5 , 0], color=c.colors[0]),
+                       Atom(pos = [0.5*c.boxL, 0.5*c.boxL], vel=[-0.5, 0], color=c.colors[1])])
+
 
 # Make set of particles
-particles = []
-plotcounter = 0 # NOTE: This trash, make it better
-for i in range(c.Nbodies):
-    pos = rng.random(c.dims)*c.boxL
-    vel = rng.random(c.dims)*2 - 1 # -1 to 1
-    temp = Atom(pos, vel, c.colors[i])
-    particles.append(temp)
-    
+#particles = Particles(c.Nbodies, seed=c.rngseed)
+
+
+# Moved this to be inside the Particles class
+# Init random number generator
+# rng = np.random.default_rng(seed=c.rngseed)
+# particles = []
+# for i in range(c.Nbodies):
+#     pos = rng.random(c.dims)*c.boxL
+#     vel = rng.random(c.dims)*2 - 1 # -1 to 1
+#     temp = Atom(pos, vel, c.colors[i])
+#     particles.append(temp)
+
 for i in range(c.timesteps):
-    for particle in particles:
-        particle.euler_step(particles)
+    particles.update()
         
     if not i % c.steps_per_plot:
-        make_plot(plotcounter, particles)
-        plotcounter += 1
+        if i == 0:
+            # make a folder within sims where the figures are saved
+            # easier to organise each simulation
+            makedirs(f"sims/sim{simnum}", exist_ok=True)
+
+        make_plot(int(i/c.steps_per_plot+1), particles)
+
+make_movie()

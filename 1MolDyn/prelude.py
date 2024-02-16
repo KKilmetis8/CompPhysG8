@@ -3,7 +3,7 @@
 """
 Created on Fri Feb  9 12:18:14 2024
 
-@author: konstantinos
+@authors: konstantinos & diederick
 """
 
 # Simulation parameters
@@ -13,15 +13,22 @@ boxL = 100 # Units??
 inv_boxL = 1 / boxL
 dims = 2 
 timesteps = 10000
-plot_number = 1000
-steps_per_plot = timesteps / plot_number 
+plot_number = 100
+
+rngseed = 8
 
 # Constants
-epsilon = 1 # 119.8 # [K]
-sigma = 1 #3.405 # [Angstrom]
-m_argon = 1 # 39.792 # [amu] 
+epsilon = 119.8 # [K]
+sigma   = 3.405 # [Angstrom]
+m_argon = 39.792 # [amu] 
+
+
+# Derived
+steps_per_plot = timesteps / plot_number 
 inv_m_argon = 1/m_argon
 
+
+#Pretty stuff
 # Plotting
 AEK = '#F1C410'
 
@@ -43,6 +50,6 @@ plt.rcParams['text.usetex'] = True
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['figure.figsize'] = [6 , 5]
-plt.rcParams['axes.facecolor']= 	'whitesmoke'
+plt.rcParams['axes.facecolor']= 'whitesmoke'
 plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'

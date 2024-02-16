@@ -3,7 +3,7 @@
 """
 Created on Fri Feb  9 13:16:59 2024
 
-@author: konstantinos
+@author: konstantinos & diederick
 
 TESTING MIC
 """
