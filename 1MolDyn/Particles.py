@@ -4,8 +4,9 @@ from Atom import Atom
 
 class Particles:
     def __init__(self, particles: np.ndarray | int, seed=c.rngseed):
-        self.particles  = particles
-        self.rng        = np.random.default_rng(seed=seed)
+        self.particles    = particles
+        
+        self.rng          = np.random.default_rng(seed=seed)
 
         #If array of Atoms not given, make it here instead
         if type(particles) not in [list,np.ndarray]:
@@ -15,6 +16,11 @@ class Particles:
                 vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
                 temp = Atom(pos, vel, c.colors[i])
                 self.particles.append(temp)
+
+        self.no_particles = len(self.particles)
+
+        self.all_positions  = [self.positions]
+        self.all_velocities = [self.velocities]
 
     @property
     def positions(self) -> np.ndarray:
@@ -90,3 +96,7 @@ class Particles:
         """
         for particle in self.particles:
             particle.euler_step(self.particles)
+        
+        # save positions and velocities to a big list containing past positions and velocities of all particles
+        self.all_positions.append(self.positions)
+        self.all_velocities.append(self.velocities)

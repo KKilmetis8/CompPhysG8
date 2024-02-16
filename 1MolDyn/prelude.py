@@ -13,14 +13,14 @@ boxL = 100 # Units??
 inv_boxL = 1 / boxL
 dims = 2 
 timesteps = 10000
-plot_number = 100
+plot_number = 1000
 
 rngseed = 8
 
 # Constants
-epsilon = 119.8 # [K]
-sigma   = 3.405 # [Angstrom]
-m_argon = 39.792 # [amu] 
+epsilon = 1 # 119.8 # [K]
+sigma   = 1 # 3.405 # [Angstrom]
+m_argon = 1 # 39.792 # [amu] 
 
 
 # Derived
