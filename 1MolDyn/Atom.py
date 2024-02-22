@@ -17,7 +17,12 @@ class Atom:
         self.pos = np.array(pos)
         self.oldpos = self.pos # update at the same time
         self.vel = np.array(vel)
-
+        
+        # Energies
+        self.kinetic = 0
+        self.potential = 0
+        self.total = 0
+        
         # Other bodies that it cares about, also class atom. Added with
         # get_friends() method
         self.friends = []
@@ -54,7 +59,15 @@ class Atom:
                 
         # NOTE: May be slow
         self.friends = rs[ rs > 0]
-                    
+    
+    def lj_pot(self, r):
+        ''' Calculates the Lennard-Jones potential '''
+        prefactor = 4 * c.epsilon
+        pauli = c.sigma**12 / r**12
+        vdWaals = c.sigma**6 / r**6
+        U = prefactor * ( pauli - vdWaals )
+        return U
+
     def lj_pot_prime(self, r):
         ''' Calculates the dU/dr for the Lennard-Jones potential '''
         prefactor = 4 * c.epsilon
@@ -82,17 +95,29 @@ class Atom:
                 self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)
         self.oldpos = self.pos
                 
-    def euler_step(self, particles):
+    def euler_step(self):
         ''' Naive Euler Step that does not conserve energy'''
-        self.get_friends(particles) # Apply the minimum imaging convention
         # self.am_i_in_the_box()
         self.oldpos = self.pos
-        self.pos += self.vel * c.h
-        self.vel += self.accleration() * c.h
+        self.pos += self.vel * c.h * c.t_tilde # time units!!
+        self.vel += self.accleration() * c.h * c.t_tilde
+
+    def energy_update(self, particles):
+        ''' Naive Euler Step that does not conserve energy'''
+
+        self.kinetic = 0.5 * c.EPSILON * (np.linalg.norm(self.vel) * \
+                                          c.vel_to_cgs)**2
+        potential = 0
+        for r in self.friends:
+            potential += self.lj_pot(r)
+        self.potential = potential
+        self.total = self.kinetic + potential
+
+    def update(self, particles):
+        self.get_friends(particles) # Apply the minimum imaging convention
+        self.euler_step()
         self.am_i_in_the_box()
-
-
-        
+        self.energy_update(particles)
     
     # def leapfrog_step(self, h = half_day):
     #     if self.friends != None:

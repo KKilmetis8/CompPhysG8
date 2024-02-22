@@ -21,7 +21,8 @@ class Particles:
 
         self.all_positions  = [self.positions]
         self.all_velocities = [self.velocities]
-
+        self.all_energies = [self.energies]
+        
     @property
     def positions(self) -> np.ndarray:
         """
@@ -65,7 +66,26 @@ class Particles:
         """
         for i, particle in enumerate(self.particles):
             particle.vel = new_vels[i]
-
+            
+    @property
+    def energies(self) -> np.ndarray:
+        """
+        Get energies of all particles.
+        Returns an (3, number of particles) array,
+        with kinetic on row 0, potential on row 1, and the sum on row 2
+        """
+        energies = np.zeros((3, len(self.particles)))
+        for i, particle in enumerate(self.particles):
+            energies[:,i] = [particle.kinetic, particle.potential, particle.total]
+        return energies
+    
+    @energies.setter
+    def energies(self, new_ene : np.ndarray):
+        """
+        No such thing as an energy setter
+        """
+        raise ValueError('We never set energies explicitly; you vile, Noether-defying creature')
+            
     @property
     def colors(self) -> list:
         """
@@ -95,8 +115,10 @@ class Particles:
         taking the forces from the other particles into account.
         """
         for particle in self.particles:
-            particle.euler_step(self.particles)
+            particle.update(self.particles)
         
         # save positions and velocities to a big list containing past positions and velocities of all particles
         self.all_positions.append(self.positions)
         self.all_velocities.append(self.velocities)
+        self.all_energies.append(self.energies)
+        # self.all_energies.

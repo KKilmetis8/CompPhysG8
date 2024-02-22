@@ -5,6 +5,7 @@ Created on Fri Feb  9 12:18:14 2024
 
 @authors: konstantinos & diederick
 """
+import numpy as np
 
 # Simulation parameters
 Nbodies = 9
@@ -12,21 +13,30 @@ h = 0.01
 boxL = 100 # Units??
 inv_boxL = 1 / boxL
 dims = 2 
-timesteps = 10000
+timesteps = 30_000
 plot_number = 1000
 
 rngseed = 8
 
-# Constants
-epsilon = 1 # 119.8 # [K]
-sigma   = 1 # 3.405 # [Angstrom]
-m_argon = 1 # 39.792 # [amu] 
-
+# N-body units
+epsilon = 1
+sigma   = 1 
+m_argon = 1
 
 # Derived
+EPSILON = 119.8 # [K]
+SIGMA = 3.405 # [Angstrom]
+M_ARGON = 39.792 # [amu] 
+K_BOLTZMANN = 1.3803658e-16 # [cgs]
 steps_per_plot = timesteps / plot_number 
 inv_m_argon = 1/m_argon
+t_tilde = 1 / np.sqrt((M_ARGON * SIGMA**2 / EPSILON ))
 
+# Converters | ALWAYS multiply by the converter
+amu_to_gram = 1.66054e-24
+angstrom_to_cm = 1e-8
+time_to_cgs = np.sqrt(amu_to_gram/K_BOLTZMANN) * angstrom_to_cm * t_tilde
+vel_to_cgs =  t_tilde / SIGMA
 
 #Pretty stuff
 # Plotting
@@ -46,7 +56,7 @@ colors = [c91, c92, c93, c94, c95, c96, c97, c98, c99]
 
 # Plotting
 import matplotlib.pyplot as plt
-plt.rcParams['text.usetex'] = True
+plt.rcParams['text.usetex'] = False # be FAST
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['figure.figsize'] = [6 , 5]
