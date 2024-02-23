@@ -9,12 +9,13 @@ import numpy as np
 
 # Simulation parameters
 Nbodies = 9
-h = 0.01
+time = 200 # [ps]
+h = 0.1
 boxL = 100 # Units??
 inv_boxL = 1 / boxL
 dims = 2 
-timesteps = 30_000
-plot_number = 1000
+timesteps = int(time / h)
+plot_number = 2
 
 rngseed = 8
 

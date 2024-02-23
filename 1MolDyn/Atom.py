@@ -17,6 +17,7 @@ class Atom:
         self.pos = np.array(pos)
         self.oldpos = self.pos # update at the same time
         self.vel = np.array(vel)
+        self.old_acc = 0
         
         # Energies
         self.kinetic = 0
@@ -97,14 +98,33 @@ class Atom:
                 
     def euler_step(self):
         ''' Naive Euler Step that does not conserve energy'''
-        # self.am_i_in_the_box()
-        self.oldpos = self.pos
         self.pos += self.vel * c.h * c.t_tilde # time units!!
         self.vel += self.accleration() * c.h * c.t_tilde
+        
+    def vel_verlet_update_pos(self, particles):
+        '''Much better verlet step '''
+        self.get_friends(particles) # Apply the minimum imaging convention
+        
+        h = c.h * c.t_tilde # time units!!
+        self.old_acc = self.accleration()
+        self.pos += self.vel * h + self.old_acc * h**2 * 0.5
+        self.am_i_in_the_box() # updates old pos
 
+    def vel_verlet_update_vel(self, particles):
+        h = c.h * c.t_tilde # time units!!
+        
+        # Update oldpos
+        self.get_friends(particles)
+        
+        # Jump ahead
+        new_acc = self.accleration()
+        self.vel += 0.5 * h * (self.old_acc + new_acc)
+        # NOTE: This can be made faster by setting initializing the first old_acc
+        # and then setting new_acc to old_acc in th end of this.
+        
     def energy_update(self, particles):
         ''' Naive Euler Step that does not conserve energy'''
-
+        # NOTE: Unit problem.
         self.kinetic = 0.5 * c.EPSILON * (np.linalg.norm(self.vel) * \
                                           c.vel_to_cgs)**2
         potential = 0
@@ -113,8 +133,9 @@ class Atom:
         self.potential = potential
         self.total = self.kinetic + potential
 
-    def update(self, particles):
+    def euler_update(self, particles,):
         self.get_friends(particles) # Apply the minimum imaging convention
+        self.oldpos = self.pos 
         self.euler_step()
         self.am_i_in_the_box()
         self.energy_update(particles)

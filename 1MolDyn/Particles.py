@@ -109,14 +109,24 @@ class Particles:
             particle.color(new_colors[i])
     
     
-    def update(self):
+    def update(self, step = 'leapfrog'):
         """
         Updates the positions/velocities for each particle, 
         taking the forces from the other particles into account.
         """
-        for particle in self.particles:
-            particle.update(self.particles)
-        
+        if step == 'euler':
+            for particle in self.particles:
+                particle.euler_update(self.particles)
+        elif step == 'leapfrog':
+            # Any way to write this in a more elegant way?
+            for particle in self.particles:
+                particle.vel_verlet_update_pos(self.particles)
+                
+            for particle in self.particles:
+                particle.vel_verlet_update_vel(self.particles)
+                particle.energy_update(self.particles)
+        else:
+            raise ValueError('There is no ' + step + 'in Ba Sing Se')
         # save positions and velocities to a big list containing past positions and velocities of all particles
         self.all_positions.append(self.positions)
         self.all_velocities.append(self.velocities)

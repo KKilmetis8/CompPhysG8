@@ -27,8 +27,8 @@ def make_movie(simnum=simnum, name='moive'):
     system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 30 sims/sim{simnum}/{name}.mp4 -loglevel panic')
 
 
-plt.ioff()
 def make_plot(index, particles):
+    plt.ioff()
     figno = int(index/c.steps_per_plot)
     fig, ax = plt.subplots(figsize = (6,5))
     
@@ -41,8 +41,10 @@ def make_plot(index, particles):
     # plot particles
     ax.scatter(pos[0], pos[1], c = colors, zorder=3)
     
-    # plot arrows
-    ax.quiver(pos[0], pos[1], vnorms[0], vnorms[1], angles='xy', zorder=2)
+    # plot arrows, maybe this should be with ax.arrow so we can change the length
+    ax.quiver(pos[0], pos[1], vnorms[0], vnorms[1], 
+              headwidth = 5, headaxislength = 5, width = 0.003,
+              angles='xy', zorder=2)
     
     # plot the box
     ax.set_xlim(-0.1 * c.boxL, 1.1 * c.boxL), ax.set_ylim(-0.1 * c.boxL, 1.1 * c.boxL)
@@ -58,12 +60,11 @@ def make_plot(index, particles):
 # particles = Particles([Atom(pos = [0.1*c.boxL, 0.5*c.boxL], vel=[0.5 , 0], color=c.colors[0]),
 #                        Atom(pos = [0.5*c.boxL, 0.5*c.boxL], vel=[-0.5, 0], color=c.colors[1])])
 
-
 # Make set of particles
+
+
+#%% First calculate all positions/velocities
 particles = Particles(c.Nbodies, seed=c.rngseed)
-
-
-# First calculate all positions/velocities
 for i in range(c.timesteps):
     particles.update()
 #%%
@@ -83,13 +84,13 @@ def energy_plot():
     # Make pretty
     ax.set_yscale('log')
     # ax.set_xscale('')
-    ax.set_ylim(1e-12, 1e2)
-    ax.set_xlim(0, 0.5)
+    # ax.set_ylim(1e-12, 1e2)
+    # ax.set_xlim(0, 0.5)
     ax.set_xlabel('Time [ps]')
     ax.set_ylabel('Energy [sim units]')
 energy_plot()
-#Then make all the plots
-# for i in np.arange(0, c.timesteps, c.steps_per_plot):
-#     make_plot(int(i), particles)
+# Then make all the plots
+for i in np.arange(0, c.timesteps, c.steps_per_plot):
+    make_plot(int(i), particles)
 
-# make_movie()
+make_movie()
