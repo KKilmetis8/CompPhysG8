@@ -17,7 +17,7 @@ class Atom:
         self.pos = np.array(pos)
         self.oldpos = self.pos # update at the same time
         self.vel = np.array(vel)
-        self.old_acc = 0
+
         
         # Energies
         self.kinetic = 0
@@ -27,6 +27,8 @@ class Atom:
         # Other bodies that it cares about, also class atom. Added with
         # get_friends() method
         self.friends = []
+        self.directions = []
+        self.old_force = 0
         
         # Plotting
         self.color = color
@@ -39,8 +41,12 @@ class Atom:
             self.past_x = []
             self.past_y = []
             self.past_z = []
+            
+    def first_step(self, particles):
+        self.get_friends(particles) # Apply the minimum imaging convention
+        self.old_force = self.force()
         
-    def get_friends(self, particles):
+    def get_friends(self, particles, step = 'leapfrog'):
         
         '''
         Returns the distances to the rest of the atoms,
@@ -48,26 +54,38 @@ class Atom:
         
         '''
         rs = np.zeros(len(particles))
+        unitaries = np.zeros( (len(particles), c.dims))
         for i, particle in enumerate(particles):
             temp_r = 0            
+            temp_unitaries = np.zeros(c.dims)
+            # MIC
             for j in range(c.dims):
-                # MIC
-                diff = self.oldpos[j] - particle.oldpos[j]
+                if step == 'euler':
+                    diff = self.oldpos[j] - particle.oldpos[j]
+                elif step == 'leapfrog':
+                    diff = self.pos[j] - particle.pos[j]
+                else:
+                    raise ValueError('There is no ' + step + 'in Ba Sing Se')
                 diff -= c.boxL * np.round(diff * c.inv_boxL,0) # 0 in, 1 out
+                temp_unitaries[j] = diff
                 temp_r += diff**2
+            rs[i] = np.sqrt(temp_r) 
+            unitary = temp_unitaries / rs[i]
+            unitaries[i] = unitary    
             
-            rs[i] = np.sqrt(temp_r)
-                
-        # NOTE: May be slow
+        # Remove yourself NOTE: May be slow
         self.friends = rs[ rs > 0]
-    
+        unitaries = unitaries[~np.isnan(unitaries)]
+        self.directions = np.reshape(unitaries, (len(particles) - 1, c.dims))
+        
+        
     def lj_pot(self, r):
         ''' Calculates the Lennard-Jones potential '''
         prefactor = 4 * c.epsilon
         pauli = c.sigma**12 / r**12
         vdWaals = c.sigma**6 / r**6
-        U = prefactor * ( pauli - vdWaals )
-        return U
+        lennard_jones = prefactor * ( pauli - vdWaals )
+        return lennard_jones
 
     def lj_pot_prime(self, r):
         ''' Calculates the dU/dr for the Lennard-Jones potential '''
@@ -77,73 +95,54 @@ class Atom:
         U_prime = prefactor * ( pauli - vdWaals )
         return U_prime
         
-    def accleration(self):
+    def force(self):
         ''' 
-        Calculate the acceleration of each particle, with the Lennard Jones 
+        Calculate the force of each particle, with the Lennard Jones 
         Potential.
         Friends must not be empty for this to work 
         '''
-        acc = np.zeros(c.dims)
-        for r in self.friends:
-            acc -= self.lj_pot_prime(r) * self.pos / r # F=-\nabla U
-        acc *= c.inv_m_argon
-        return acc
+        force = np.zeros(c.dims)
+        for distance, direction in zip(self.friends, self.directions):
+            force -= self.lj_pot_prime(distance) * direction # F=-\nabla U
+        return force
     
     def am_i_in_the_box(self):
         # NOTE: Maybe this can be phrased more succintly
         for d in range(c.dims):
             if self.pos[d] > c.boxL or self.pos[d] < 0:
                 self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)
-        self.oldpos = self.pos
-                
-    def euler_step(self):
-        ''' Naive Euler Step that does not conserve energy'''
-        self.pos += self.vel * c.h * c.t_tilde # time units!!
-        self.vel += self.accleration() * c.h * c.t_tilde
         
     def vel_verlet_update_pos(self, particles):
         '''Much better verlet step '''
-        self.get_friends(particles) # Apply the minimum imaging convention
-        
-        h = c.h * c.t_tilde # time units!!
-        self.old_acc = self.accleration()
-        self.pos += self.vel * h + self.old_acc * h**2 * 0.5
-        self.am_i_in_the_box() # updates old pos
+        timestep = c.h_sim_units #* c.t_tilde # time units!!
+        self.pos += self.vel * timestep + self.old_force * timestep**2 * 0.5 * c.inv_m_argon
+        self.am_i_in_the_box() 
 
     def vel_verlet_update_vel(self, particles):
-        h = c.h * c.t_tilde # time units!!
-        
+        timestep = c.h_sim_units # * c.t_tilde # time units!!
         # Update oldpos
         self.get_friends(particles)
-        
-        # Jump ahead
-        new_acc = self.accleration()
-        self.vel += 0.5 * h * (self.old_acc + new_acc)
-        # NOTE: This can be made faster by setting initializing the first old_acc
-        # and then setting new_acc to old_acc in th end of this.
+        new_force = self.force()
+        self.vel += 0.5 * timestep * (self.old_force + new_force) * c.inv_m_argon
+        self.old_force = new_force
+
         
     def energy_update(self, particles):
         ''' Naive Euler Step that does not conserve energy'''
         # NOTE: Unit problem.
-        self.kinetic = 0.5 * c.EPSILON * (np.linalg.norm(self.vel) * \
-                                          c.vel_to_cgs)**2
+        self.kinetic = 0.5 * c.m_argon * np.linalg.norm(self.vel)**2#  * \
+                                          # c.vel_to_cgs)**2
         potential = 0
         for r in self.friends:
             potential += self.lj_pot(r)
         self.potential = potential
         self.total = self.kinetic + potential
 
-    def euler_update(self, particles,):
+    def euler_update_vel(self, particles,):
         self.get_friends(particles) # Apply the minimum imaging convention
-        self.oldpos = self.pos 
-        self.euler_step()
+        self.vel += self.force() * c.h_sim_units * c.inv_m_argon #* c.t_tilde
+        
+    def euler_update_pos(self, particles):
+        self.pos += self.vel * c.h_sim_units #* c.t_tilde # time units!!
         self.am_i_in_the_box()
         self.energy_update(particles)
-    
-    # def leapfrog_step(self, h = half_day):
-    #     if self.friends != None:
-            
-    #         # self.pos += 0.5 * h * self.vel # Drift 
-    #         self.vel +=  h * self.gravity(self.pos) # Kick
-    #         self.pos +=  h * self.vel # Drift 
-    #         # self.vel +=  0.5 * h * self.gravity(self.pos) # Kick

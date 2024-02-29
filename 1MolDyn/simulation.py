@@ -24,7 +24,7 @@ simnum = int(max([0]+[float(file[3:])for file in listdir('sims')])+1)
 makedirs(f"sims/sim{simnum}", exist_ok=True)
 
 def make_movie(simnum=simnum, name='moive'):
-    system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 30 sims/sim{simnum}/{name}.mp4 -loglevel panic')
+    system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 18 sims/sim{simnum}/{name}.mp4 -loglevel panic')
 
 
 def make_plot(index, particles):
@@ -61,25 +61,26 @@ def make_plot(index, particles):
 #                        Atom(pos = [0.5*c.boxL, 0.5*c.boxL], vel=[-0.5, 0], color=c.colors[1])])
 
 # From slides
-particles = Particles([Atom(pos = [0.3*c.boxL, 0.51*c.boxL], vel=[0.09 , 0], color=c.colors[0]),
-                       Atom(pos = [0.7*c.boxL, 0.49*c.boxL], vel=[-0.09, 0], color=c.colors[1])])
-
+particles = Particles([ Atom(pos = [0.7*c.boxL, 0.49*c.boxL], vel=[-0.09, 0], color=c.colors[1]), 
+                       Atom(pos = [0.3*c.boxL, 0.51*c.boxL], vel=[0.09 , 0], color=c.colors[0])],
+                       )
 
 
 # Make set of particles
-
+particles = Particles(c.Nbodies, seed=c.rngseed)
 
 #%% First calculate all positions/velocities
-particles = Particles(c.Nbodies, seed=c.rngseed)
+
 for i in range(c.timesteps):
-    particles.update()
+    particles.update(step = 'leapfrog')
+
 #%%
 def energy_plot():
-    time = np.arange(0, c.timesteps + 1) * c.h * c.time_to_cgs * 1e12
+    time = np.arange(0, c.timesteps + 1) * c.time_to_cgs * c.timestep
     plt.ion()
     energies = particles.all_energies
     kinetic = [ np.sum(energy[0]) for energy in energies]
-    potential = [ np.abs(np.sum(energy[1])) for energy in energies]
+    potential = [ np.sum(energy[1]) for energy in energies]
     total = [ np.sum(energy[2]) for energy in energies]
 
     fig, ax = plt.subplots(figsize = (4,4))
@@ -88,14 +89,14 @@ def energy_plot():
     ax.plot(time, total, c = 'k', linestyle = '-.')
 
     # Make pretty
-    ax.set_yscale('log')
+    #ax.set_yscale('log')
     # ax.set_xscale('')
     # ax.set_ylim(1e-12, 1e2)
     # ax.set_xlim(0, 0.5)
     ax.set_xlabel('Time [ps]')
     ax.set_ylabel('Energy [sim units]')
 energy_plot()
-# Then make all the plots
+#%% Then make all the plots
 for i in np.arange(0, c.timesteps, c.steps_per_plot):
     make_plot(int(i), particles)
 

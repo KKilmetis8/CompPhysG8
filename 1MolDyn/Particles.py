@@ -7,8 +7,8 @@ class Particles:
         self.particles    = particles
         
         self.rng          = np.random.default_rng(seed=seed)
-
-        #If array of Atoms not given, make it here instead
+        
+        # If array of Atoms not given, make it here instead
         if type(particles) not in [list,np.ndarray]:
             self.particles = []
             for i in range(int(particles)):
@@ -16,7 +16,9 @@ class Particles:
                 vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
                 temp = Atom(pos, vel, c.colors[i])
                 self.particles.append(temp)
-
+                
+        for particle in self.particles:
+            particle.first_step(self.particles)
         self.no_particles = len(self.particles)
 
         self.all_positions  = [self.positions]
@@ -107,8 +109,7 @@ class Particles:
         """
         for i, particle in enumerate(self.particles):
             particle.color(new_colors[i])
-    
-    
+            
     def update(self, step = 'leapfrog'):
         """
         Updates the positions/velocities for each particle, 
@@ -116,7 +117,11 @@ class Particles:
         """
         if step == 'euler':
             for particle in self.particles:
-                particle.euler_update(self.particles)
+                particle.euler_update_pos(self.particles)
+            for particle in self.particles:
+                particle.euler_update_vel(self.particles)
+
+                
         elif step == 'leapfrog':
             # Any way to write this in a more elegant way?
             for particle in self.particles:
