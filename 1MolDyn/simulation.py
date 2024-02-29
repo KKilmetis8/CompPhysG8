@@ -68,7 +68,7 @@ particles = Particles([Atom(pos = [0.7*c.boxL, 0.49*c.boxL], vel=[-0.09, 0], col
 
 
 # Make set of particles
-#particles = Particles(c.Nbodies, seed=c.rngseed)
+particles = Particles(c.Nbodies, seed=c.rngseed)
 
 #%% First calculate all positions/velocities
 
@@ -77,7 +77,7 @@ for i in range(c.timesteps):
 
 #%%
 def energy_plot():
-    time = np.arange(0, c.timesteps + 1) * c.timestep * c.time_to_cgs * 1e12
+    time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12
     plt.ion()
     energies = np.array(particles.all_energies)
     kinetic, potential, total = np.sum(energies, axis=2).T

@@ -32,8 +32,8 @@ vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 # Simulation parameters
 # USER INPUT
 Nbodies = 9
-time = 300 # [ps] 
-timestep = 1 # [ps]
+time = 600 # [ps] 
+timestep = 0.001 # [ps]
 boxL = 20 # [nm]
 dims = 2 
 plot_number = 100
