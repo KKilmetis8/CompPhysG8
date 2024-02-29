@@ -20,9 +20,9 @@ class Atom:
 
         
         # Energies
-        self.kinetic = 0
+        self.kinetic = 0.5 * c.m_argon * np.linalg.norm(self.vel)**2
         self.potential = 0
-        self.total = 0
+        self.total = self.kinetic + self.potential
         
         # Other bodies that it cares about, also class atom. Added with
         # get_friends() method
@@ -112,7 +112,7 @@ class Atom:
             if self.pos[d] > c.boxL or self.pos[d] < 0:
                 self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)
         
-    def vel_verlet_update_pos(self, particles):
+    def vel_verlet_update_pos(self):
         '''Much better verlet step '''
         timestep = c.h_sim_units #* c.t_tilde # time units!!
         self.pos += self.vel * timestep + self.old_force * timestep**2 * 0.5 * c.inv_m_argon
@@ -127,7 +127,7 @@ class Atom:
         self.old_force = new_force
 
         
-    def energy_update(self, particles):
+    def energy_update(self):
         ''' Naive Euler Step that does not conserve energy'''
         # NOTE: Unit problem.
         self.kinetic = 0.5 * c.m_argon * np.linalg.norm(self.vel)**2#  * \
@@ -138,7 +138,7 @@ class Atom:
         self.potential = potential
         self.total = self.kinetic + potential
 
-    def euler_update_vel(self, particles,):
+    def euler_update_vel(self, particles):
         self.get_friends(particles) # Apply the minimum imaging convention
         self.vel += self.force() * c.h_sim_units * c.inv_m_argon #* c.t_tilde
         

@@ -32,15 +32,14 @@ vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 # Simulation parameters
 # USER INPUT
 Nbodies = 9
-time = 100 # [ps] 
+time = 300 # [ps] 
 timestep = 1 # [ps]
 boxL = 20 # [nm]
 dims = 2 
 plot_number = 100
 
 # we say
-time *= 1e-12 # [s]
-time *= time_to_sim # [sim units]
+time *= 1e-12 * time_to_sim # [sim units]
 h_sim_units = timestep * 1e-12 * time_to_sim # [sim units]
 boxL *= 1e-7 / (SIGMA * angstrom_to_cm)
 inv_boxL = 1 / boxL

@@ -4,9 +4,9 @@ from Atom import Atom
 
 class Particles:
     def __init__(self, particles: np.ndarray | int, seed=c.rngseed):
-        self.particles    = particles
+        self.particles = particles
         
-        self.rng          = np.random.default_rng(seed=seed)
+        self.rng = np.random.default_rng(seed=seed)
         
         # If array of Atoms not given, make it here instead
         if type(particles) not in [list,np.ndarray]:
@@ -19,7 +19,6 @@ class Particles:
                 
         for particle in self.particles:
             particle.first_step(self.particles)
-        self.no_particles = len(self.particles)
 
         self.all_positions  = [self.positions]
         self.all_velocities = [self.velocities]
@@ -109,7 +108,7 @@ class Particles:
         """
         for i, particle in enumerate(self.particles):
             particle.color(new_colors[i])
-            
+
     def update(self, step = 'leapfrog'):
         """
         Updates the positions/velocities for each particle, 
@@ -125,11 +124,11 @@ class Particles:
         elif step == 'leapfrog':
             # Any way to write this in a more elegant way?
             for particle in self.particles:
-                particle.vel_verlet_update_pos(self.particles)
+                particle.vel_verlet_update_pos()
                 
             for particle in self.particles:
                 particle.vel_verlet_update_vel(self.particles)
-                particle.energy_update(self.particles)
+                particle.energy_update()
         else:
             raise ValueError('There is no ' + step + 'in Ba Sing Se')
         # save positions and velocities to a big list containing past positions and velocities of all particles
