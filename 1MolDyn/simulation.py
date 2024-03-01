@@ -77,23 +77,32 @@ for i in range(c.timesteps):
 
 #%%
 def energy_plot():
-    time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12
+    time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12 # ps
     plt.ion()
     energies = np.array(particles.all_energies)
     kinetic, potential, total = np.sum(energies, axis=2).T
 
-    fig, ax = plt.subplots(figsize = (4,4))
-    ax.plot(time, kinetic, c = c.c93)
-    ax.plot(time, potential, c = c.c97)
-    ax.plot(time, total, c = 'k', linestyle = '-.')
+    fig, ax = plt.subplots(1,2, figsize = (6,4), tight_layout = True)
+    ax[0].plot(time, kinetic, c = c.c93)
+    ax[0].plot(time, potential, c = c.c97)
+    ax[0].plot(time, total, c = 'k', linestyle = '-.')
+    
+    ax[0].set_xlabel('Time [ps]')
+    ax[0].set_ylabel('Energy [sim units]')
+    
+    # Error
+    error = total - total[0]
+    ax[1].plot(time, error, c='k')
+    ax[1].grid()
+    ax[1].set_xlabel('Time [ps]')
+    ax[1].set_ylabel('Energy Error [sim units]')
 
     # Make pretty
     # ax.set_yscale('log')
     # ax.set_xscale('')
     # ax.set_ylim(1e-12, 1e2)
     #ax.set_xlim(0, 0.5)
-    ax.set_xlabel('Time [ps]')
-    ax.set_ylabel('Energy [sim units]')
+
 energy_plot()
 
 #%% Then make all the plots

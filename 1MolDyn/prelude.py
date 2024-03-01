@@ -23,20 +23,22 @@ EPSILON = 119.8 # [K]
 SIGMA = 3.405 # [Angstrom]
 M_ARGON = 39.792 # [amu] 
 K_BOLTZMANN = 1.3803658e-16 # [cgs]
-time_to_cgs = np.sqrt((M_ARGON * amu_to_gram * (SIGMA * angstrom_to_cm)**2 / (EPSILON * K_BOLTZMANN) ))
+time_to_cgs = np.sqrt((M_ARGON * amu_to_gram * (SIGMA * angstrom_to_cm)**2 / 
+                       (EPSILON * K_BOLTZMANN) ))
 time_to_sim = 1/time_to_cgs
 vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 
 
 
 # Simulation parameters
-# USER INPUT
+# USER INPUT Will be a seperate file #########
 Nbodies = 9
 time = 600 # [ps] 
 timestep = 0.01 # [ps]
 boxL = 20 # [nm]
 dims = 2 
 plot_number = 300
+#------------------ Pretty stuff ----------------------------------------------
 
 # we say
 time *= 1e-12 * time_to_sim # [sim units]
@@ -46,8 +48,8 @@ inv_boxL = 1 / boxL
 timesteps = int(time / h_sim_units)
 steps_per_plot = timesteps / plot_number 
 
-# Pretty stuff
-# Plotting
+#------------------ Pretty stuff ----------------------------------------------
+### Colors
 AEK = '#F1C410'
 
 # 9 palette
@@ -62,7 +64,7 @@ c98 = '#4040a0'
 c99 = '#903498'
 colors = [c91, c92, c93, c94, c95, c96, c97, c98, c99]
 
-# Plotting
+### Plotting
 import matplotlib.pyplot as plt
 plt.rcParams['text.usetex'] = False # be FAST
 plt.rcParams['figure.dpi'] = 300
