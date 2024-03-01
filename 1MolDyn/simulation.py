@@ -25,7 +25,7 @@ simnum = int(max([0]+[float(file[3:])for file in listdir('sims')])+1)
 makedirs(f"sims/sim{simnum}", exist_ok=True)
 
 def make_movie(simnum=simnum, name='moive'):
-    system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 18 sims/sim{simnum}/{name}.mp4 -loglevel panic')
+    system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 30 sims/sim{simnum}/{name}.mp4 -loglevel panic')
 
 
 def make_plot(index, particles):

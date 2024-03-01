@@ -33,10 +33,10 @@ vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 # USER INPUT
 Nbodies = 9
 time = 600 # [ps] 
-timestep = 0.001 # [ps]
+timestep = 0.01 # [ps]
 boxL = 20 # [nm]
 dims = 2 
-plot_number = 100
+plot_number = 300
 
 # we say
 time *= 1e-12 * time_to_sim # [sim units]
