@@ -1,6 +1,7 @@
 import numpy as np
 import prelude as c
 from Atom import Atom
+from itertools import product
 
 class Particles:
     def __init__(self, particles: np.ndarray | int, seed=c.rngseed):
@@ -8,13 +9,22 @@ class Particles:
         
         self.rng = np.random.default_rng(seed=seed)
         
-        # If array of Atoms not given, make it here instead
+        # Random Initialization
+        # if type(particles) not in [list,np.ndarray]:
+        #     self.particles = []
+        #     for i in range(int(particles)):
+        #         pos = self.rng.random(c.dims)*c.boxL
+        #         vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
+        #         temp = Atom(pos, vel, c.colors[i])
+        #         self.particles.append(temp)
+        
+        # FCC Positions
         if type(particles) not in [list,np.ndarray]:
             self.particles = []
             for i in range(int(particles)):
                 pos = self.rng.random(c.dims)*c.boxL
                 vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
-                temp = Atom(pos, vel, c.colors[i])
+                temp = Atom(pos, vel, 'purple')
                 self.particles.append(temp)
                 
         for particle in self.particles:
@@ -23,6 +33,27 @@ class Particles:
         self.all_positions  = [self.positions]
         self.all_velocities = [self.velocities]
         self.all_energies = [self.energies]
+     
+    def init_position(self):
+        unit_fcc = np.array([ [0,0,0], 
+                              [1,1,0], 
+                              [0,1,1], 
+                              [1,0,1]
+                              ])
+        pos = unit_fcc.copy()
+        
+        # All permutations
+        xhat, yhat, zhat = np.identity(3)
+        hats = [xhat, yhat, zhat]
+        hats = np.array( list(product((0,1,2), repeat = 3)) ) 
+        
+        for hat in hats:
+            temp = np.add(unit_fcc, hat)
+            pos = np.vstack( (pos, temp) )
+            
+        # Rescale to box
+        small_box = 0.9 * c.boxL
+        pos = np.multiply(pos, small_box / 3)
         
     @property
     def positions(self) -> np.ndarray:
