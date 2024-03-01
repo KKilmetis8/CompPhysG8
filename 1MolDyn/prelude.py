@@ -32,17 +32,19 @@ vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 
 # Simulation parameters
 # USER INPUT Will be a seperate file #########
-Nbodies = 9
+Nbodies = 108
 time = 600 # [ps] 
 timestep = 0.01 # [ps]
-boxL = 20 # [nm]
-dims = 2 
+density = 0.5 # [amu / nm^3]
+# temperature = 
+dims = 3
 plot_number = 300
 #------------------ Pretty stuff ----------------------------------------------
 
 # we say
 time *= 1e-12 * time_to_sim # [sim units]
 h_sim_units = timestep * 1e-12 * time_to_sim # [sim units]
+boxL = (Nbodies * M_ARGON / density)**(1/3) # [nm]
 boxL *= 1e-7 / (SIGMA * angstrom_to_cm)
 inv_boxL = 1 / boxL
 timesteps = int(time / h_sim_units)
