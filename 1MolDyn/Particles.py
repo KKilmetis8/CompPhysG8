@@ -21,10 +21,10 @@ class Particles:
         # FCC Positions
         if type(particles) not in [list,np.ndarray]:
             self.particles = []
+            init_poss = self.init_position_FCC()
+            init_vels = self.init_velocities()
             for i in range(int(particles)):
-                pos = self.rng.random(c.dims)*c.boxL
-                vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
-                temp = Atom(pos, vel, 'purple')
+                temp = Atom(init_poss[i], init_vels[i], 'purple')
                 self.particles.append(temp)
                 
         for particle in self.particles:
@@ -34,35 +34,38 @@ class Particles:
         self.all_velocities = [self.velocities]
         self.all_energies = [self.energies]
      
-    def init_position(self):
-        unit_fcc = np.array([ [0,0,0], 
-                              [1,1,0], 
-                              [0,1,1], 
-                              [1,0,1]
-                              ])
+    def init_position_FCC(self):
+        unit_fcc = np.array([[0,0,0],
+                             [1,1,0],
+                             [0,1,1],
+                             [1,0,1]])
+        
+        iterations = np.array(list(product(range(3), repeat=3)))
+
         pos = unit_fcc.copy()
-        
-        # All permutations
-        xhat, yhat, zhat = np.identity(3)
-        hats = [xhat, yhat, zhat]
-        hats = np.array( list(product((0,1,2), repeat = 3)) ) 
-        
-        for hat in hats:
-            temp = np.add(unit_fcc, hat)
-            pos = np.vstack( (pos, temp) )
+        for iteration in iterations[1:]:
+            points = unit_fcc + iteration
+            pos = np.vstack((pos, points))
             
         # Rescale to box
         small_box = 0.9 * c.boxL
         pos = np.multiply(pos, small_box / 3)
-        
+        return pos
+
+    def init_velocities(self):
+        # Maxwell
+        velocity_std = np.sqrt(c.EPSILON / c.M_ARGON) * np.sqrt(c.temperature / c.m_argon)
+        vels = np.random.normal(scale=velocity_std, size=(c.Nbodies, c.dims))
+        return vels
+
     @property
     def positions(self) -> np.ndarray:
         """
         Get positions of all particles.
-        Returns an (2, number of particles) array,
-        with x-values on row 0 and y-values on row 1.
+        Returns an (c.dims, number of particles) array,
+        with each row corresponding to velocity-coordinates.
         """
-        positions = np.zeros((2, len(self.particles)))
+        positions = np.zeros((c.dims, len(self.particles)))
         for i, particle in enumerate(self.particles):
             positions[:,i] = particle.pos
         return positions
@@ -71,8 +74,8 @@ class Particles:
     def positions(self, new_pos : np.ndarray):
         """
         Change positions of all particles.
-        Requires an (2, number of particles) array as input,
-        with row 0 being the new x-values and row 1 the new y-values.
+        Requires an (c.dims, number of particles) array as input,
+        with each row corresponding to position-coordinates.
         """
         for i, particle in enumerate(self.particles):
             particle.pos = new_pos[i]
@@ -81,10 +84,10 @@ class Particles:
     def velocities(self) -> np.ndarray:
         """
         Get velocities of all particles.
-        Returns an (2, number of particles) array,
-        with x-values on row 0 and y-values on row 1.
+        Returns an (c.dims, number of particles) array,
+        with each row corresponding to velocity-coordinates.
         """
-        velocities = np.zeros((2, len(self.particles)))
+        velocities = np.zeros((c.dims, len(self.particles)))
         for i, particle in enumerate(self.particles):
             velocities[:,i] = particle.vel
         return velocities
@@ -93,8 +96,8 @@ class Particles:
     def velocities(self, new_vels : np.ndarray):
         """
         Change velocities of all particles.
-        Requires an (2, number of particles) array as input,
-        with row 0 being the new x-values and row 1 the new y-values.
+        Requires an (c.dims, number of particles) array as input,
+        with each row corresponding to velocity-coordinates.
         """
         for i, particle in enumerate(self.particles):
             particle.vel = new_vels[i]
@@ -167,3 +170,9 @@ class Particles:
         self.all_velocities.append(self.velocities)
         self.all_energies.append(self.energies)
         # self.all_energies.
+
+    def rescale_vels(self):
+        target = (len(self.particles) - 1) * (3/2) * c.temperature
+        total_kinetic = np.sum(self.energies[0])
+        rescale_lambda = np.sqrt(target/total_kinetic)
+         
