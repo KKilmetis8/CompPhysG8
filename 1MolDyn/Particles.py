@@ -49,7 +49,7 @@ class Particles:
             
         # Rescale to box
         small_box = 0.9 * c.boxL
-        pos = np.multiply(pos, small_box / 3)
+        pos = np.multiply(pos, small_box / pos.max()) # using pos.max() ensures right normalization
         return pos
 
     def init_velocities(self):
@@ -223,7 +223,27 @@ class Particles:
                 break
             else:
                 self.rescale_vels(target)
+    
+    def pressure(self):
+        # Friends doesn't include self (j=i)
+        distance_pairs = np.zeros((len(self.particles), len(self.particles)-1))
+        for i, particle in enumerate(self.particles):
+            particle.get_friends(self.particles)
+            distance_pairs[i] = particle.friends
         
+        lj_pot_primes = self.particles[0].lj_pot_prime(distance_pairs)
+
+        # Only care about j>i pairs, otherwise counting twice (j<i) and including self (j=i)
+        # Hence use lower triangular part (tril)
+        sum_part  = np.tril(distance_pairs * lj_pot_primes, -1).sum()
+        sum_part *= c.density/(6 * len(self.particles))
+
+        # ideal gas
+        ig_part = c.temperature * c.density
+
+        pressure = ig_part - sum_part
         
+        return pressure
+
  
          

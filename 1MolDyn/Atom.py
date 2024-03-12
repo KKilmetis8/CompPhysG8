@@ -49,7 +49,7 @@ class Atom:
         
         '''
         Returns the distances to the rest of the atoms,
-        Applling the minimum imaging convention
+        Appllying the minimum imaging convention
         
         '''
         rs = np.zeros(len(particles))
