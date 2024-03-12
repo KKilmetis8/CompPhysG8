@@ -22,6 +22,7 @@ angstrom_to_cm = 1e-8
 EPSILON = 119.8 # [K]
 SIGMA = 3.405 # [Angstrom]
 M_ARGON = 39.792 # [amu] 
+R_ARGON = 0.98 # [A]
 K_BOLTZMANN = 1.3803658e-16 # [cgs]
 time_to_cgs = np.sqrt((M_ARGON * amu_to_gram * (SIGMA * angstrom_to_cm)**2 / 
                        (EPSILON * K_BOLTZMANN) ))
@@ -29,16 +30,15 @@ time_to_sim = 1/time_to_cgs
 vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 
 
-
 # Simulation parameters
 # USER INPUT Will be a seperate file #########
 Nbodies = 108
-time = 600 # [ps] 
+time = 10 # [ps] 
 timestep = 0.01 # [ps]
-density = 1.2 # sim unit
-temperature = 0.5 # sim unit
+density = 1.2 # [M_ARGON/SIGMA^3]
+temperature = 0.5 # [EPSILON / K_BOLTZMAN]
 dims = 3
-plot_number = 300
+plot_number = 10
 
 # Examples (sim units)
 # rho = 0.3, T = 3.0 # gas

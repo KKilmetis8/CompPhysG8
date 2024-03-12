@@ -38,7 +38,7 @@ class Particles:
         unit_fcc = np.array([[0,0,0],
                              [1,1,0],
                              [0,1,1],
-                             [1,0,1]])
+                             [1,0,1]]) * 0.5 # Kon: ensures no overlap
         
         iterations = np.array(list(product(range(3), repeat=3)))
 
@@ -54,8 +54,11 @@ class Particles:
 
     def init_velocities(self):
         # Maxwell
-        velocity_std = np.sqrt(c.EPSILON / c.M_ARGON) * np.sqrt(c.temperature / c.m_argon)
-        vels = np.random.normal(scale=velocity_std, size=(c.Nbodies, c.dims))
+        # velocity_std = np.sqrt(c.EPSILON / c.M_ARGON) * np.sqrt(c.temperature / c.m_argon)
+        # vels = np.random.normal(scale=velocity_std, size=(c.Nbodies, c.dims))
+        
+        vels = np.random.normal(0,c.temperature,
+                                size = (c.Nbodies, c.dims))
         return vels
 
     @property
@@ -170,9 +173,57 @@ class Particles:
         self.all_velocities.append(self.velocities)
         self.all_energies.append(self.energies)
         # self.all_energies.
+    
+    def relax_run(self, trelax: float):
+        '''
+        Parameters
+        ----------
+        trelax : float
+            Relaxation time of the particle set.
 
-    def rescale_vels(self):
-        target = (len(self.particles) - 1) * (3/2) * c.temperature
+        Returns
+        -------
+            Runs the simulation for 1 relaxation time
+        '''
+        trial_steps = int(trelax // c.timestep) 
+        print(trial_steps)
+        for i in range(trial_steps):
+            self.update(step = 'leapfrog')
+            if not i%100:
+                print('Eq Step:', i, 'of', trial_steps)
+            
+    def rescale_vels(self, target):
         total_kinetic = np.sum(self.energies[0])
         rescale_lambda = np.sqrt(target/total_kinetic)
+        rescaled_vels = np.multiply(rescale_lambda, self.velocities)
+        self.velocities(self.velocities , rescaled_vels)
+        
+    def equilibriate(self, tolerance = 0.25):
+        
+        our_kinetic = np.sum(self.energies[0])
+        target = (len(self.particles) - 1) * (3/2) * c.temperature
+        print(our_kinetic, target)
+        while np.abs(our_kinetic - target)/target > tolerance: 
+            # Calc Relax time
+            mean_vel = np.mean(self.velocities)
+            number_density = c.density * c.inv_m_argon
+            cross_section = np.pi * (2*c.R_ARGON / c.SIGMA)**2 #πd^2
+            trelax = 1 /  (cross_section * mean_vel * np.sqrt(2) * number_density)
+            # trelax2 = c.Nbodies / np.log(c.Nbodies) * c.boxL / mean_vel
+            # print(trelax)
+            # trelax = 1
+            # Run for one tenth of the relax time
+            self.relax_run(trelax / 10)
+            
+            # Check for equilibriation
+            our_kinetic = np.sum(self.energies[0])
+            if np.abs(our_kinetic - target)/target > tolerance:
+                print('System in Equilibrium')
+                print(our_kinetic, target)
+                break
+            else:
+                self.rescale_vels(target)
+        
+        
+ 
          

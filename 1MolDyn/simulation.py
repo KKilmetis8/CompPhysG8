@@ -62,14 +62,14 @@ def make_plot(index, particles):
 #                        Atom(pos = [0.5*c.boxL, 0.5*c.boxL], vel=[-0.5, 0], color=c.colors[1])])
 
 # From slides
-particles = Particles([Atom(pos = [0.7*c.boxL, 0.49*c.boxL], vel=[-0.09, 0], color=c.colors[1]), 
-                       Atom(pos = [0.3*c.boxL, 0.51*c.boxL], vel=[0.09 , 0], color=c.colors[0])],
-                       )
+# particles = Particles([Atom(pos = [0.7*c.boxL, 0.49*c.boxL], vel=[-0.09, 0], color=c.colors[1]), 
+#                        Atom(pos = [0.3*c.boxL, 0.51*c.boxL], vel=[0.09 , 0], color=c.colors[0])],
+#                        )
 
 
 # Make set of particles
 particles = Particles(c.Nbodies, seed=c.rngseed)
-
+particles.equilibriate()
 #%% First calculate all positions/velocities
 
 for i in range(c.timesteps):

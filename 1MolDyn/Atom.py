@@ -18,7 +18,6 @@ class Atom:
         self.oldpos = self.pos # update at the same time
         self.vel = np.array(vel)
 
-        
         # Energies
         self.kinetic = 0.5 * c.m_argon * np.linalg.norm(self.vel)**2
         self.potential = 0
@@ -125,7 +124,6 @@ class Atom:
         new_force = self.force()
         self.vel += 0.5 * timestep * (self.old_force + new_force) * c.inv_m_argon
         self.old_force = new_force
-
         
     def energy_update(self):
         ''' Naive Euler Step that does not conserve energy'''
