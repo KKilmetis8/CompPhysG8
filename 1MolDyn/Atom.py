@@ -41,11 +41,11 @@ class Atom:
             self.past_y = []
             self.past_z = []
             
-    def first_step(self, particles):
-        self.get_friends(particles) # Apply the minimum imaging convention
+    def first_step(self, particles, me):
+        self.get_friends(particles, me) # Apply the minimum imaging convention
         self.old_force = self.force()
         
-    def get_friends(self, particles, step = 'leapfrog'):
+    def get_friends(self, particles, me, step = 'leapfrog'):
         
         '''
         Returns the distances to the rest of the atoms,
@@ -55,29 +55,43 @@ class Atom:
         rs = np.zeros(len(particles))
         unitaries = np.zeros( (len(particles), c.dims))
         for i, particle in enumerate(particles):
-            temp_r = 0            
-            temp_unitaries = np.zeros(c.dims)
-            # MIC
-            for j in range(c.dims):
-                if step == 'euler':
-                    diff = self.oldpos[j] - particle.oldpos[j]
-                elif step == 'leapfrog':
-                    diff = self.pos[j] - particle.pos[j]
-                else:
-                    raise ValueError('There is no ' + step + 'in Ba Sing Se')
-                diff -= c.boxL * np.round(diff * c.inv_boxL,0) # 0 in, 1 out
-                temp_unitaries[j] = diff
-                temp_r += diff**2
-            rs[i] = np.sqrt(temp_r) 
-            unitary = temp_unitaries / rs[i]
-            unitaries[i] = unitary    
-            
+            if i != me:
+                temp_r = 0            
+                temp_unitaries = np.zeros(c.dims)
+                # MIC
+                for j in range(c.dims):
+                    if step == 'euler':
+                        diff = self.oldpos[j] - particle.oldpos[j]
+                    elif step == 'leapfrog':
+                        diff = self.pos[j] - particle.pos[j]
+                    else:
+                        raise ValueError('There is no ' + step + 'in Ba Sing Se')
+                    diff -= c.boxL * np.round(diff * c.inv_boxL,0) # 0 in, 1 out
+                    
+                    temp_unitaries[j] = diff
+                    temp_r += diff**2
+                if temp_r < 1:
+                    temp_r =  1
+                rs[i] = np.sqrt(temp_r) 
+                unitary = temp_unitaries / rs[i]
+                unitaries[i] = unitary    
+            else:
+                rs[i] = 0
+                unitaries[i] = [np.NaN, np.NaN, np.NaN]
+                
         # Remove yourself NOTE: May be slow
         self.friends = rs[ rs > 0]
+        if len(self.friends) < 107:
+            print(rs)
+            idxs = np.argsort(rs)
+            print(particles[idxs[0]].pos)
+            print(particles[idxs[1]].pos)
+            print(particles[idxs[2]].pos)
+
         unitaries = unitaries[~np.isnan(unitaries)]
         self.directions = np.reshape(unitaries, (len(particles) - 1, c.dims))
-        
-        
+            # self.directions = np.reshape(unitaries, (len(self.friends), c.dims))
+
     def lj_pot(self, r):
         ''' Calculates the Lennard-Jones potential '''
         prefactor = 4 * c.epsilon
@@ -117,10 +131,10 @@ class Atom:
         self.pos += self.vel * timestep + self.old_force * timestep**2 * 0.5 * c.inv_m_argon
         self.am_i_in_the_box() 
 
-    def vel_verlet_update_vel(self, particles):
+    def vel_verlet_update_vel(self, particles, me):
         timestep = c.h_sim_units # * c.t_tilde # time units!!
         # Update oldpos
-        self.get_friends(particles)
+        self.get_friends(particles, me)
         new_force = self.force()
         self.vel += 0.5 * timestep * (self.old_force + new_force) * c.inv_m_argon
         self.old_force = new_force

@@ -4,36 +4,40 @@ from Atom import Atom
 from itertools import product
 
 class Particles:
-    def __init__(self, particles: np.ndarray | int, seed=c.rngseed):
+#### --------------------------------------------------------------------------
+# Initialization methods
+#### --------------------------------------------------------------------------   
+    def __init__(self, particles: np.ndarray | int, mode = 'FCC', seed=c.rngseed):
         self.particles = particles
-        
         self.rng = np.random.default_rng(seed=seed)
         
-        # Random Initialization
-        # if type(particles) not in [list,np.ndarray]:
-        #     self.particles = []
-        #     for i in range(int(particles)):
-        #         pos = self.rng.random(c.dims)*c.boxL
-        #         vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
-        #         temp = Atom(pos, vel, c.colors[i])
-        #         self.particles.append(temp)
-        
-        # FCC Positions
         if type(particles) not in [list,np.ndarray]:
-            self.particles = []
-            init_poss = self.init_position_FCC()
-            init_vels = self.init_velocities()
-            for i in range(int(particles)):
-                temp = Atom(init_poss[i], init_vels[i], 'purple')
-                self.particles.append(temp)
-                
-        for particle in self.particles:
-            particle.first_step(self.particles)
+            # Random Initialization
+            if mode == 'random':
+                    self.particles = []
+                    for i in range(int(particles)):
+                        pos = self.rng.random(c.dims)*c.boxL
+                        vel = self.rng.random(c.dims)*2 - 1 # -1 to 1
+                        temp = Atom(pos, vel, c.colors[i])
+                        self.particles.append(temp)
+        
+            # FCC Positions
+            elif mode == 'FCC':
+                self.particles = []
+                init_poss = self.init_position_FCC()
+                init_vels = self.init_velocities()
+                for i in range(int(particles)):
+                    temp = Atom(init_poss[i], init_vels[i], 'purple')
+                    self.particles.append(temp)
+                    
+        # First step for Verlet
+        for me, particle in enumerate(self.particles):
+            particle.first_step(self.particles, me)
 
         self.all_positions  = [self.positions]
         self.all_velocities = [self.velocities]
         self.all_energies = [self.energies]
-     
+       
     def init_position_FCC(self):
         unit_fcc = np.array([[0,0,0],
                              [1,1,0],
@@ -56,11 +60,156 @@ class Particles:
         # Maxwell
         # velocity_std = np.sqrt(c.EPSILON / c.M_ARGON) * np.sqrt(c.temperature / c.m_argon)
         # vels = np.random.normal(scale=velocity_std, size=(c.Nbodies, c.dims))
-        
         vels = np.random.normal(0,c.temperature,
                                 size = (c.Nbodies, c.dims))
         return vels
+#### --------------------------------------------------------------------------
+# Main simulation loop
+#### --------------------------------------------------------------------------       
+    def update(self, step = 'leapfrog'):
+        """
+        Updates the positions/velocities for each particle, 
+        taking the forces from the other particles into account.
+        """
+        if step == 'euler':
+            for particle in self.particles:
+                particle.euler_update_pos(self.particles)
+            for particle in self.particles:
+                particle.euler_update_vel(self.particles)
 
+                
+        elif step == 'leapfrog':
+            # Any way to write this in a more elegant way?
+            for particle in self.particles:
+                particle.vel_verlet_update_pos()
+                
+            for me, particle in enumerate(self.particles):
+                particle.vel_verlet_update_vel(self.particles, me)
+                particle.energy_update()
+                #print(np.sum(self.energies[0]))
+        else:
+            raise ValueError('There is no ' + step + 'in Ba Sing Se')
+        # save positions and velocities to a big list containing past positions and velocities of all particles
+        self.all_positions.append(self.positions)
+        self.all_velocities.append(self.velocities)
+        self.all_energies.append(self.energies)
+        # self.all_energies.
+#### --------------------------------------------------------------------------
+# Equilibriation methods
+#### --------------------------------------------------------------------------      
+    def relax_run(self, trelax: float):
+        '''
+        Parameters
+        ----------
+        trelax : float
+            Relaxation time of the particle set.
+
+        Returns
+        -------
+            Runs the simulation for 1 relaxation time
+        '''
+        ## Maybe instead of that let's do run until change in kinetic energy
+        ## is small?
+        # window = 20
+        # roll = 5
+        # tol = 0.05
+        # # Run for a little while
+        # for i in range(window):
+        #     self.update(step = 'leapfrog')
+
+        # max_steps = 500 # Don't get stuck
+        # rolling_kinetic_energy = np.sum(self.all_energies[-window:][0]) / window
+        # for i in range(max_steps):
+        #     self.update(step = 'leapfrog')
+            
+        #     # Every roll steps, check for convergance in kin
+        #     if not i % roll:
+        #         kinetic = np.sum(self.all_energies[-roll:][0]) / roll
+        #         if np.abs(kinetic - rolling_kinetic_energy) < tol:
+        #             break
+        #         else:
+        #             rolling_kinetic_energy = np.sum(self.all_energies[-window:][0]) / window
+        #             print('Eq Try:', i // roll)
+        #             print(rolling_kinetic_energy, kinetic)
+        #             print(len(self.all_energies[0]))
+        for i in range(50):
+            self.update(step = 'leapfrog')
+
+                    
+            
+    def rescale_vels(self, target):
+        total_kinetic = np.sum(self.energies[0])
+        print(target, total_kinetic)
+        rescale_lambda = np.sqrt(target/total_kinetic)
+        print('lamda', rescale_lambda)
+        rescaled_vels = np.multiply(rescale_lambda, self.velocities)
+        self.velocities = rescaled_vels
+        print(target, 0.5 * np.sum(self.velocities)**2)
+        
+    def equilibriate(self, tolerance = 0.1):
+        
+        our_kinetic = np.sum(self.energies[0])
+        target = (len(self.particles) - 1) * (3/2) * c.temperature
+        print(our_kinetic, target)
+        while np.abs(our_kinetic - target)/target > tolerance: 
+            # Calc Relax time
+            # mean_vel = np.abs(np.mean(self.velocities))
+            # number_density = c.density * c.inv_m_argon
+            # cross_section = np.pi * (2*c.R_ARGON / c.SIGMA)**2 #πd^2
+            # trelax = 1 /  (cross_section * mean_vel * np.sqrt(2) * number_density)
+            
+            # Run for one tenth of the relax time
+            self.relax_run(1)
+            
+            # Check for equilibriation
+            our_kinetic = np.sum(self.energies[0])
+            if np.abs(our_kinetic - target)/target < tolerance:
+                print('System in Equilibrium')
+                print(our_kinetic, target)
+                break
+            else:
+                print('Not in Equilibrium')
+                #print(our_kinetic, target)
+                self.rescale_vels(target)
+#### --------------------------------------------------------------------------
+# Observables
+#### --------------------------------------------------------------------------    
+    def pressure(self):
+        # Friends doesn't include self (j=i)
+        distance_pairs = np.zeros((len(self.particles), len(self.particles)-1))
+        for i, particle in enumerate(self.particles):
+            particle.get_friends(self.particles)
+            distance_pairs[i] = particle.friends
+        
+        lj_pot_primes = self.particles[0].lj_pot_prime(distance_pairs)
+
+        # Only care about j>i pairs, otherwise counting twice (j<i) and including self (j=i)
+        # Hence use lower triangular part (tril)
+        sum_part  = np.tril(distance_pairs * lj_pot_primes, -1).sum()
+        sum_part *= c.density/(6 * len(self.particles))
+
+        # ideal gas
+        ig_part = c.temperature * c.density
+
+        pressure = ig_part - sum_part
+        
+        return pressure
+    
+    def pair_correlation(self, bins = c.Nbodies // 3):
+        n_corr = np.zeros(bins)
+        for particle in self.particles:
+            # Ensure same r range is used
+            temp_n_corr, r = np.histogram(particle.friends, bins = bins,
+                                          range=(0.3, c.boxL / 2))
+            n_corr = np.add(n_corr, temp_n_corr)
+        n_corr = np.divide(n_corr, len(self.particles)) # Average
+        deltar = r[1] - r[0]
+        coeff = 2 * c.boxL**3 / (4 * np.pi * c.Nbodies * (c.Nbodies - 1))
+        g_corr = coeff * n_corr / (r[1:]**2 * deltar) 
+        return r[1:], g_corr
+#### --------------------------------------------------------------------------
+# Quality of Life
+#### --------------------------------------------------------------------------
     @property
     def positions(self) -> np.ndarray:
         """
@@ -103,7 +252,7 @@ class Particles:
         with each row corresponding to velocity-coordinates.
         """
         for i, particle in enumerate(self.particles):
-            particle.vel = new_vels[i]
+            particle.vel = new_vels[:,i]
             
     @property
     def energies(self) -> np.ndarray:
@@ -146,104 +295,7 @@ class Particles:
         for i, particle in enumerate(self.particles):
             particle.color(new_colors[i])
 
-    def update(self, step = 'leapfrog'):
-        """
-        Updates the positions/velocities for each particle, 
-        taking the forces from the other particles into account.
-        """
-        if step == 'euler':
-            for particle in self.particles:
-                particle.euler_update_pos(self.particles)
-            for particle in self.particles:
-                particle.euler_update_vel(self.particles)
 
-                
-        elif step == 'leapfrog':
-            # Any way to write this in a more elegant way?
-            for particle in self.particles:
-                particle.vel_verlet_update_pos()
-                
-            for particle in self.particles:
-                particle.vel_verlet_update_vel(self.particles)
-                particle.energy_update()
-        else:
-            raise ValueError('There is no ' + step + 'in Ba Sing Se')
-        # save positions and velocities to a big list containing past positions and velocities of all particles
-        self.all_positions.append(self.positions)
-        self.all_velocities.append(self.velocities)
-        self.all_energies.append(self.energies)
-        # self.all_energies.
-    
-    def relax_run(self, trelax: float):
-        '''
-        Parameters
-        ----------
-        trelax : float
-            Relaxation time of the particle set.
-
-        Returns
-        -------
-            Runs the simulation for 1 relaxation time
-        '''
-        trial_steps = int(trelax // c.timestep) 
-        print(trial_steps)
-        for i in range(trial_steps):
-            self.update(step = 'leapfrog')
-            if not i%100:
-                print('Eq Step:', i, 'of', trial_steps)
-            
-    def rescale_vels(self, target):
-        total_kinetic = np.sum(self.energies[0])
-        rescale_lambda = np.sqrt(target/total_kinetic)
-        rescaled_vels = np.multiply(rescale_lambda, self.velocities)
-        self.velocities(self.velocities , rescaled_vels)
-        
-    def equilibriate(self, tolerance = 0.25):
-        
-        our_kinetic = np.sum(self.energies[0])
-        target = (len(self.particles) - 1) * (3/2) * c.temperature
-        print(our_kinetic, target)
-        while np.abs(our_kinetic - target)/target > tolerance: 
-            # Calc Relax time
-            mean_vel = np.mean(self.velocities)
-            number_density = c.density * c.inv_m_argon
-            cross_section = np.pi * (2*c.R_ARGON / c.SIGMA)**2 #πd^2
-            trelax = 1 /  (cross_section * mean_vel * np.sqrt(2) * number_density)
-            # trelax2 = c.Nbodies / np.log(c.Nbodies) * c.boxL / mean_vel
-            # print(trelax)
-            # trelax = 1
-            # Run for one tenth of the relax time
-            self.relax_run(trelax / 10)
-            
-            # Check for equilibriation
-            our_kinetic = np.sum(self.energies[0])
-            if np.abs(our_kinetic - target)/target > tolerance:
-                print('System in Equilibrium')
-                print(our_kinetic, target)
-                break
-            else:
-                self.rescale_vels(target)
-    
-    def pressure(self):
-        # Friends doesn't include self (j=i)
-        distance_pairs = np.zeros((len(self.particles), len(self.particles)-1))
-        for i, particle in enumerate(self.particles):
-            particle.get_friends(self.particles)
-            distance_pairs[i] = particle.friends
-        
-        lj_pot_primes = self.particles[0].lj_pot_prime(distance_pairs)
-
-        # Only care about j>i pairs, otherwise counting twice (j<i) and including self (j=i)
-        # Hence use lower triangular part (tril)
-        sum_part  = np.tril(distance_pairs * lj_pot_primes, -1).sum()
-        sum_part *= c.density/(6 * len(self.particles))
-
-        # ideal gas
-        ig_part = c.temperature * c.density
-
-        pressure = ig_part - sum_part
-        
-        return pressure
 
  
          

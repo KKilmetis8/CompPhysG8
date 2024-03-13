@@ -68,13 +68,23 @@ def make_plot(index, particles):
 
 
 # Make set of particles
-particles = Particles(c.Nbodies, seed=c.rngseed)
+particles = Particles(c.Nbodies)
+#%%
 particles.equilibriate()
+#%%
+def pc():
+    plt.figure()
+    r, g = particles.pair_correlation()
+    plt.plot(r * c.SIGMA,g,c='k',marker='h')
+    plt.xlabel('r [Angstrom]')
+    plt.ylabel('g(r)')
+    plt.title('Solid')
+pc()
 #%% First calculate all positions/velocities
 
 for i in range(c.timesteps):
     particles.update(step = 'leapfrog')
-
+pc()
 #%%
 def energy_plot():
     time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12 # ps
