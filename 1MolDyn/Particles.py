@@ -1,5 +1,6 @@
 import numpy as np
 import prelude as c
+import config
 from Atom import Atom
 from itertools import product
 
@@ -7,7 +8,15 @@ class Particles:
 #### --------------------------------------------------------------------------
 # Initialization methods
 #### --------------------------------------------------------------------------   
-    def __init__(self, particles: np.ndarray | int, mode = 'FCC', seed=c.rngseed):
+    def __init__(self, particles: np.ndarray | int, mode = 'FCC', 
+                 seed=c.rngseed):
+        ''' Initializes particles.
+            If an array of Atom objects is provided, it uses this. 
+            Otherwise it makes its own.
+            
+            mode, str. Accepts FCC and random. 
+            Chooses how to initialize positions.
+            '''
         self.particles = particles
         self.rng = np.random.default_rng(seed=seed)
         
@@ -37,8 +46,11 @@ class Particles:
         self.all_positions  = [self.positions]
         self.all_velocities = [self.velocities]
         self.all_energies = [self.energies]
-       
+        self.n_hists = []
+        self.bin_edges = None
+        
     def init_position_FCC(self):
+        ''' Initializes the positions of the particles at'''
         unit_fcc = np.array([[0,0,0],
                              [1,1,0],
                              [0,1,1],
@@ -51,16 +63,15 @@ class Particles:
             points = unit_fcc + iteration
             pos = np.vstack((pos, points))
             
-        # Rescale to box
-        small_box = 0.9 * c.boxL
-        pos = np.multiply(pos, small_box / pos.max()) # using pos.max() ensures right normalization
+        small_box = 0.9 * c.boxL # Rescale to box, 0.9 to stay inside
+        pos = np.multiply(pos, small_box / pos.max()) # pos.max() ensures
+                                                      # correct normalization
         return pos
 
     def init_velocities(self):
         # Maxwell
         # velocity_std = np.sqrt(c.EPSILON / c.M_ARGON) * np.sqrt(c.temperature / c.m_argon)
-        # vels = np.random.normal(scale=velocity_std, size=(c.Nbodies, c.dims))
-        vels = np.random.normal(0,c.temperature,
+        vels = np.random.normal(0, c.temperature, #velocity_std, # This could just be c.temperature
                                 size = (c.Nbodies, c.dims))
         return vels
 #### --------------------------------------------------------------------------
@@ -76,7 +87,6 @@ class Particles:
                 particle.euler_update_pos(self.particles)
             for particle in self.particles:
                 particle.euler_update_vel(self.particles)
-
                 
         elif step == 'leapfrog':
             # Any way to write this in a more elegant way?
@@ -89,11 +99,11 @@ class Particles:
                 #print(np.sum(self.energies[0]))
         else:
             raise ValueError('There is no ' + step + 'in Ba Sing Se')
-        # save positions and velocities to a big list containing past positions and velocities of all particles
+            
+        # Save positions and velocities
         self.all_positions.append(self.positions)
         self.all_velocities.append(self.velocities)
         self.all_energies.append(self.energies)
-        # self.all_energies.
 #### --------------------------------------------------------------------------
 # Equilibriation methods
 #### --------------------------------------------------------------------------      
@@ -132,25 +142,30 @@ class Particles:
         #             print('Eq Try:', i // roll)
         #             print(rolling_kinetic_energy, kinetic)
         #             print(len(self.all_energies[0]))
-        for i in range(50):
+        
+        for i in range(10): # need do decide this better.
             self.update(step = 'leapfrog')
 
-                    
-            
     def rescale_vels(self, target):
+        ''' Rescales velocities to better match the expected Maxwellian 
+            distribution'''
         total_kinetic = np.sum(self.energies[0])
-        print(target, total_kinetic)
         rescale_lambda = np.sqrt(target/total_kinetic)
-        print('lamda', rescale_lambda)
         rescaled_vels = np.multiply(rescale_lambda, self.velocities)
         self.velocities = rescaled_vels
-        print(target, 0.5 * np.sum(self.velocities)**2)
         
-    def equilibriate(self, tolerance = 0.1):
+        # Printing
+        if config.loud:
+            print(total_kinetic,"|", target)
+            print('lamda', rescale_lambda)
+            print(0.5 * np.sum(self.velocities)**2,"|", target)
         
+    def equilibriate(self, tolerance = 0.05):
         our_kinetic = np.sum(self.energies[0])
         target = (len(self.particles) - 1) * (3/2) * c.temperature
-        print(our_kinetic, target)
+        print('Our Kinetic energy | Target')
+        print('---------------------------')
+        print(our_kinetic,"|", target)
         while np.abs(our_kinetic - target)/target > tolerance: 
             # Calc Relax time
             # mean_vel = np.abs(np.mean(self.velocities))
@@ -165,7 +180,7 @@ class Particles:
             our_kinetic = np.sum(self.energies[0])
             if np.abs(our_kinetic - target)/target < tolerance:
                 print('System in Equilibrium')
-                print(our_kinetic, target)
+                print(our_kinetic,'|', target)
                 break
             else:
                 print('Not in Equilibrium')
@@ -213,18 +228,32 @@ class Particles:
         
         return pressure
     
-    def pair_correlation(self, bins = c.Nbodies // 3):
-        n_corr = np.zeros(bins)
-        for particle in self.particles:
-            # Ensure same r range is used
-            temp_n_corr, r = np.histogram(particle.friends, bins = bins,
-                                          range=(0.3, c.boxL / 2))
+    def n_pair_correlation(self, deltar=0.01):
+        ''' Calculate n(r) for a given snapshot '''
+        # Ensure same r range is used
+        if self.bin_edges is None:
+            self.bin_edges = np.arange(deltar, 0.5 * c.boxL, deltar) 
+        n_corr = np.zeros(len(self.bin_edges[1:]))
+        for i, particle in enumerate(self.particles):
+            temp_n_corr, _ = np.histogram(particle.friends[i:], # dont overcount
+                                          bins = self.bin_edges,)
             n_corr = np.add(n_corr, temp_n_corr)
-        n_corr = np.divide(n_corr, c.Nbodies) # Average
+        self.n_hists.append(n_corr)
+    
+    def g_pair_correlation(self):
+        ''' Average all n(r), include coefficients for g(r)'''
+        # Average
+        n_corr = np.zeros(len(self.n_hists[0]))
+        for hist in self.n_hists:
+            n_corr = np.add(n_corr, hist)
+        n_corr = np.divide(n_corr, len(self.n_hists))
+        
+        # Ensure same r range is used
+        r = self.bin_edges[1:] 
         deltar = r[1] - r[0]
         coeff  = 2 * c.boxL**3 / (4 * np.pi * c.Nbodies * (c.Nbodies - 1))
-        g_corr = coeff * n_corr / (r[1:]**2 * deltar) 
-        return r[1:], g_corr
+        g_corr = coeff * n_corr / (r**2 * deltar) 
+        return r, g_corr
 #### --------------------------------------------------------------------------
 # Quality of Life
 #### --------------------------------------------------------------------------

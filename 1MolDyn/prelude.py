@@ -6,15 +6,15 @@ Created on Fri Feb  9 12:18:14 2024
 @authors: konstantinos & diederick
 """
 import numpy as np
+import config
 
-# N-body units
+# N-body units ----------------------------------------------------------------
 epsilon = 1
 sigma   = 1 
-m_argon = 1 # 39.792# * amu_to_gram
+m_argon = 1 
 inv_m_argon = 1/m_argon
 
-rngseed = 8
-# Converters | ALWAYS multiply by the converter to go from sim->cgs
+# Converters | ALWAYS multiply by the converter to go from sim->cgs -----------
 amu_to_gram = 1.66054e-24
 angstrom_to_cm = 1e-8
 
@@ -30,41 +30,32 @@ time_to_sim = 1/time_to_cgs
 vel_to_cgs =  SIGMA * angstrom_to_cm / time_to_cgs
 
 
-# Simulation parameters
-# USER INPUT Will be a seperate file #########
-Nbodies = 108
-time = 10 # [ps] 
-timestep = 0.01 # [ps]
-density = 1.2 # [M_ARGON/SIGMA^3]
-temperature = 0.5 # [EPSILON / K_BOLTZMAN]
+# Simulation parameters | Reads config ----------------------------------------
+Nbodies = config.Nbodies
+time = config.time # [ps] 
+timestep = config.timestep # [ps]
+density = config.density # [M_ARGON/SIGMA^3]
+temperature = config.temperature # [EPSILON / K_BOLTZMAN]
 dims = 3
-plot_number = 10
+plot_number = 100
+rngseed = 8 # Used only for testing
 
-# Examples (sim units)
-# rho = 0.3, T = 3.0 # gas
-# rho = 0.8, T = 1.0 # liquid
-# rho = 1.2, T = 0.5 # solid
-
-#------------------ Converting ----------------------------------------------
+#------------------ Converting ------------------------------------------------
 
 # we say
 time *= 1e-12 * time_to_sim # [sim units]
 h_sim_units = timestep * 1e-12 * time_to_sim # [sim units]
-
 #density_physical = (M_ARGON * amu_to_gram/ SIGMA ** 3) * density
-
 #boxL = (Nbodies * M_ARGON / density)**(1/3) # [nm]
 #boxL *= 1e-7 / (SIGMA * angstrom_to_cm)
-
 boxL = (Nbodies / density) ** (1/3)
-
 inv_boxL = 1 / boxL
-
 timesteps = int(time / h_sim_units)
+n_frequency = timesteps / 10
 steps_per_plot = timesteps / plot_number 
 
 #------------------ Pretty stuff ----------------------------------------------
-### Colors
+# Colors
 AEK = '#F1C410'
 
 # 9 palette
@@ -79,7 +70,7 @@ c98 = '#4040a0'
 c99 = '#903498'
 colors = [c91, c92, c93, c94, c95, c96, c97, c98, c99]
 
-### Plotting
+# Plotting
 import matplotlib.pyplot as plt
 plt.rcParams['text.usetex'] = False # be FAST
 plt.rcParams['figure.dpi'] = 300

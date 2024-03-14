@@ -10,6 +10,7 @@ import numpy as np
 import prelude as c
 
 class Atom:
+    ''' Each Argon Atom is an object of this class.'''
     def __init__(self, pos, vel,
                  color, markersize = 10):
         
@@ -70,6 +71,7 @@ class Atom:
                     
                     temp_unitaries[j] = diff
                     temp_r += diff**2
+                # Don't come too close
                 if temp_r < 1:
                     temp_r =  1
                 rs[i] = np.sqrt(temp_r) 
@@ -81,16 +83,8 @@ class Atom:
                 
         # Remove yourself NOTE: May be slow
         self.friends = rs[ rs > 0]
-        if len(self.friends) < 107:
-            print(rs)
-            idxs = np.argsort(rs)
-            print(particles[idxs[0]].pos)
-            print(particles[idxs[1]].pos)
-            print(particles[idxs[2]].pos)
-
         unitaries = unitaries[~np.isnan(unitaries)]
         self.directions = np.reshape(unitaries, (len(particles) - 1, c.dims))
-            # self.directions = np.reshape(unitaries, (len(self.friends), c.dims))
 
     def lj_pot(self, r):
         ''' Calculates the Lennard-Jones potential '''
@@ -120,7 +114,8 @@ class Atom:
         return force
     
     def am_i_in_the_box(self):
-        # NOTE: Maybe this can be phrased more succintly
+        ''' Applies the Pacman condition. 
+            If something moves outside the box, it appears on the other side'''
         for d in range(c.dims):
             if self.pos[d] > c.boxL or self.pos[d] < 0:
                 self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)

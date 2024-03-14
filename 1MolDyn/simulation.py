@@ -10,23 +10,91 @@ Created on Thu Feb 15 14:52:31 2024
 # Vanilla Imports
 import numpy as np
 import matplotlib.pyplot as plt
+from os import listdir, makedirs, system
+import time
 
 # Chocolate Imports
+import config
 import prelude as c
-from Atom import Atom
 from Particles import Particles
-from os import listdir, makedirs, system
 
-# this is a saving function inside simulation class
-simnum = int(max([0]+[float(file[3:])for file in listdir('sims')])+1)
+# Simulation ID for saving
+time = time.strftime('%d-%h-%H:%M:%S', time.localtime())
+simname = f'{config.state_of_matter}_at_{time}'
+# No. of this simulation
+# simnum = int(max([0]+[float(file[3:])for file in listdir('sims')])+1)
+# Folder for figs
+makedirs(f"sims/{simname}/", exist_ok=True)
+#%% Make set of particles
+particles = Particles(c.Nbodies)
+particles.equilibriate()
 
-# make a folder within sims where the figures are saved
-# easier to organise each simulation
-makedirs(f"sims/sim{simnum}", exist_ok=True)
+#%% Simulate
+current_progress = 0
+for i in range(c.timesteps):
+    particles.update(step = 'leapfrog')
+    if not i % c.n_frequency: # Calculate n(r) every n_frequency timesteps
+        particles.n_pair_correlation()
+    
+    # Progress check
+    if config.loud:
+        progress = int(np.round(i/c.timesteps,1) * 100)
+        if i % 100  == 0 and progress != current_progress:
+            print('Simulation is', progress, '% done')
+            current_progress = progress            
+if config.loud:
+    print('Simulation is done')
+    
+pressure = particles.pressure() # NOTE: CONVERT
+pressure_string = f'{pressure}' 
+print('Pressure:', pressure_string)
+#%% Plotting   
+def pair_correlation_plot(simname):
+    plt.figure()
+    r, g = particles.g_pair_correlation()
+    plt.plot(r * c.SIGMA, g, c='k',marker='h')
+    plt.xlabel('r [Angstrom]', fontsize = 14)
+    plt.ylabel('g(r)', fontsize = 14)
+    plt.title(config.state_of_matter, fontsize = 14)
+    plt.ylim(-0.1, 5)
+    plt.savefig(f'sims/{simname}/pair_corr.pdf', format = 'pdf')
+pair_correlation_plot(simname)
+#%%
+def energy_plot(simname):
+    time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12 # ps
+    # Only use actual simulation, not equilibriation energies.
+    energies = np.array(particles.all_energies)[-len(time):] 
+    kinetic, potential, total = np.sum(energies, axis=2).T
 
-def make_movie(simnum=simnum, name='moive'):
-    system(f'ffmpeg -i sims/sim{simnum}/fig%d.png -c:v libx264 -r 30 sims/sim{simnum}/{name}.mp4 -loglevel panic')
+    fig, ax = plt.subplots(1,2, figsize = (6,4), tight_layout = True)
+    ax[0].plot(time, kinetic, c = c.c93, label = 'Kinetic')
+    ax[0].plot(time, potential, c = c.c97, label = 'Potential')
+    ax[0].plot(time, total, c = 'k', linestyle = '-.', label = 'Total')
+    
+    ax[0].set_xlabel('Time [ps]')
+    ax[0].set_ylabel('Energy [sim units]')
+    ax[0].legend()
+    
+    # Error
+    error = total - total[0]
+    ax[1].plot(time, error, c='k')
+    ax[1].grid()
+    ax[1].set_xlabel('Time [ps]')
+    ax[1].set_ylabel('Energy Error [sim units]')
+    fig.suptitle(config.state_of_matter, fontsize = 14)
 
+    # Make pretty
+    # ax.set_yscale('log')
+    # ax.set_xscale('')
+    # ax.set_ylim(1e-12, 1e2)
+    # ax.set_xlim(0, 0.5)
+    plt.savefig(f'sims/{simname}/energy_err', format = 'pdf')
+energy_plot(simname)
+
+#%% Then make all the plots
+
+def make_movie(simnum=simname, name='moive'):
+    system(f'ffmpeg -i sims/{simname}/fig%d.png -c:v libx264 -r 30 sims/{simname}/{name}.mp4 -loglevel panic')
 
 def make_plot(index, particles):
     plt.ioff()
@@ -52,72 +120,10 @@ def make_plot(index, particles):
     ax.axhline(0, c = 'k', linestyle = '--'), ax.axhline(c.boxL, c = 'k', linestyle = '--')
     ax.axvline(0, c = 'k', linestyle = '--'), ax.axvline(c.boxL, c = 'k', linestyle = '--')
     
-
-    plt.savefig(f'sims/sim{simnum}/fig{figno}')
+    plt.savefig(f'sims/{simname}/fig{figno}')
     plt.close(fig)
 
-# Testing
-# Collision
-# particles = Particles([Atom(pos = [0.1*c.boxL, 0.5*c.boxL], vel=[0.5 , 0], color=c.colors[0]),
-#                        Atom(pos = [0.5*c.boxL, 0.5*c.boxL], vel=[-0.5, 0], color=c.colors[1])])
-
-# From slides
-# particles = Particles([Atom(pos = [0.7*c.boxL, 0.49*c.boxL], vel=[-0.09, 0], color=c.colors[1]), 
-#                        Atom(pos = [0.3*c.boxL, 0.51*c.boxL], vel=[0.09 , 0], color=c.colors[0])],
-#                        )
-
-
-# Make set of particles
-particles = Particles(c.Nbodies)
-#%%
-particles.equilibriate()
-#%%
-def pc():
-    plt.figure()
-    r, g = particles.pair_correlation()
-    plt.plot(r * c.SIGMA,g,c='k',marker='h')
-    plt.xlabel('r [Angstrom]')
-    plt.ylabel('g(r)')
-    plt.title('Solid')
-pc()
-#%% First calculate all positions/velocities
-
-for i in range(c.timesteps):
-    particles.update(step = 'leapfrog')
-pc()
-#%%
-def energy_plot():
-    time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12 # ps
-    plt.ion()
-    # Only use actual simulation, not equilibriate energies.
-    energies = np.array(particles.all_energies)[-len(time):] 
-    kinetic, potential, total = np.sum(energies, axis=2).T
-
-    fig, ax = plt.subplots(1,2, figsize = (6,4), tight_layout = True)
-    ax[0].plot(time, kinetic, c = c.c93)
-    ax[0].plot(time, potential, c = c.c97)
-    ax[0].plot(time, total, c = 'k', linestyle = '-.')
-    
-    ax[0].set_xlabel('Time [ps]')
-    ax[0].set_ylabel('Energy [sim units]')
-    
-    # Error
-    error = total - total[0]
-    ax[1].plot(time, error, c='k')
-    ax[1].grid()
-    ax[1].set_xlabel('Time [ps]')
-    ax[1].set_ylabel('Energy Error [sim units]')
-
-    # Make pretty
-    # ax.set_yscale('log')
-    # ax.set_xscale('')
-    # ax.set_ylim(1e-12, 1e2)
-    #ax.set_xlim(0, 0.5)
-
-energy_plot()
-
-#%% Then make all the plots
-for i in np.arange(0, c.timesteps, c.steps_per_plot):
-    make_plot(int(i), particles)
-
-make_movie()
+if config.plot:
+    for i in np.arange(0, c.timesteps, c.steps_per_plot):
+        make_plot(int(i), particles)
+    make_movie()
