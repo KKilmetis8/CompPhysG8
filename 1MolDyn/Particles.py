@@ -193,7 +193,7 @@ class Particles:
                 # Reference particle coordinates.
                 ref_particle = pos_at_tstep[:,i].reshape((c.dims,1))
                 # Calculate distance to all particles from reference particle (includes itself)
-                friends = np.sum((pos_at_tstep - ref_particle)**2, axis=0)
+                friends = np.sqrt(np.sum((pos_at_tstep - ref_particle)**2, axis=0))
                 # Insert friends into 3D matrix, remove self (0).
                 friends_matrices[t,i] = friends[np.arange(len(friends)) != i]
 
