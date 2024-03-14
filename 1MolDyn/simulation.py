@@ -89,7 +89,8 @@ pc()
 def energy_plot():
     time = np.arange(c.timesteps + 1) * c.h_sim_units * c.time_to_cgs * 1e12 # ps
     plt.ion()
-    energies = np.array(particles.all_energies)
+    # Only use actual simulation, not equilibriate energies.
+    energies = np.array(particles.all_energies)[-len(time):] 
     kinetic, potential, total = np.sum(energies, axis=2).T
 
     fig, ax = plt.subplots(1,2, figsize = (6,4), tight_layout = True)
