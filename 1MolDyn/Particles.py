@@ -48,6 +48,7 @@ class Particles:
         self.all_energies = [self.energies]
         self.n_hists = []
         self.bin_edges = None
+        self.pressure_sum_parts = []
         
     def init_position_FCC(self):
         ''' Initializes the positions of the particles at'''
@@ -189,7 +190,23 @@ class Particles:
 #### --------------------------------------------------------------------------
 # Observables
 #### --------------------------------------------------------------------------    
+    def pressure_sum_part(self):
+        '''Calculate the sum part of the pressure equation for a single snapshot'''
+        friends_matrix = np.nan * np.ones((c.Nbodies, c.Nbodies-1))
+        for i, particle in enumerate(self.particles):
+            friends_matrix[i,i:] = particle.friends[i:]
+
+        lj_pot_primes = self.particles[0].lj_pot_prime(friends_matrix)
+
+        sum_part = np.nansum(friends_matrix * lj_pot_primes)
+
+        self.pressure_sum_parts.append(sum_part)
+
+
+
     def pressure(self):
+        '''Calculate the pressure, averaging all pressure_sum_parts
+        and including coefficients'''
         # Old version of getting friends,
         # only used latest positions.
         # Friends doesn't include self (j=i)
@@ -200,33 +217,40 @@ class Particles:
         
         # Big 3D matrix, which will contain the pairwise distances
         # for each particle for each timestep.
-        friends_matrices = np.zeros((len(self.all_positions), c.Nbodies, c.Nbodies-1))
-        # Loop over all positions for each timestep.
-        for t, pos_at_tstep in enumerate(self.all_positions):
-            # Pick reference particle.
-            for i in range(c.Nbodies):
-                # Reference particle coordinates.
-                ref_particle = pos_at_tstep[:,i].reshape((c.dims,1))
-                # Calculate distance to all particles from reference particle (includes itself)
-                friends = np.sqrt(np.sum((pos_at_tstep - ref_particle)**2, axis=0))
-                # Insert friends into 3D matrix, remove self (0).
-                friends_matrices[t,i] = friends[np.arange(len(friends)) != i]
+        # friends_matrices = np.zeros((len(self.all_positions), c.Nbodies, c.Nbodies-1))
+        # # Loop over all positions for each timestep.
+        # for t, pos_at_tstep in enumerate(self.all_positions):
+        #     # Pick reference particle.
+        #     for i in range(c.Nbodies):
+        #         # Reference particle coordinates.
+        #         ref_particle = pos_at_tstep[:,i].reshape((c.dims,1))
+        #         # Calculate distance to all particles from reference particle (includes itself)
+        #         friends = np.sqrt(np.sum((pos_at_tstep - ref_particle)**2, axis=0))
+        #         # Insert friends into 3D matrix, remove self (0).
+        #         friends_matrices[t,i] = friends[np.arange(len(friends)) != i]
 
-        # Calculate LJ-pot-primes for each pairwise distance.
-        # Not removing zeros previously would give many warnings here.
-        lj_pot_primes = self.particles[0].lj_pot_prime(friends_matrices)
+        # # Calculate LJ-pot-primes for each pairwise distance.
+        # # Not removing zeros previously would give many warnings here.
+        # lj_pot_primes = self.particles[0].lj_pot_prime(friends_matrices)
 
-        # Only care about j>i pairs, otherwise counting twice (j<i)
-        # Hence use lower triangular part (tril)
-        sum_part  = np.tril(friends_matrices * lj_pot_primes, -1).sum(axis=(1,2)).mean()
-        sum_part *= c.density/(6 * c.Nbodies)
+        # # Only care about j>i pairs, otherwise counting twice (j<i)
+        # # Hence use lower triangular part (tril)
+        # sum_part  = np.tril(friends_matrices * lj_pot_primes, -1).sum(axis=(1,2)).mean(
 
-        # ideal gas
+        # # ideal gas
         ig_part = c.temperature * c.density
 
-        pressure = ig_part - sum_part
+        averaged = np.mean(self.pressure_sum_parts)
+
+        pressure = ig_part - c.density * averaged/(6 * c.Nbodies )
         
-        return pressure
+        # sigma_y = |dy/dx * sigma_x|
+        # -> sigma_P = |dP/d<sum_part> * sigma_<sum_part>|
+        # dP/d<sum_part> = - rho/(6 * N)
+
+        pressure_stdev = c.density/(6 * c.Nbodies) * np.std(self.pressure_sum_parts)
+
+        return pressure, pressure_stdev
     
     def n_pair_correlation(self, deltar=0.01):
         ''' Calculate n(r) for a given snapshot '''

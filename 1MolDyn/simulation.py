@@ -35,6 +35,7 @@ for i in range(c.timesteps):
     particles.update(step = 'leapfrog')
     if not i % c.n_frequency: # Calculate n(r) every n_frequency timesteps
         particles.n_pair_correlation()
+        particles.pressure_sum_part()
     
     # Progress check
     if config.loud:
@@ -88,7 +89,7 @@ def energy_plot(simname):
     # ax.set_xscale('')
     # ax.set_ylim(1e-12, 1e2)
     # ax.set_xlim(0, 0.5)
-    plt.savefig(f'sims/{simname}/energy_err', format = 'pdf')
+    plt.savefig(f'sims/{simname}/energy_err.pdf', format = 'pdf')
 energy_plot(simname)
 
 #%% Then make all the plots

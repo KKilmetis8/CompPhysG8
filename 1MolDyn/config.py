@@ -32,7 +32,7 @@ Specifies parameters of simulation.
     plot, bool: Set to true to generate a movie of the simulation
 """
 
-state_of_matter = 'Solid'
+state_of_matter = 'Gas'
 Nbodies = 108
 time = 15 # [ps] 
 timestep = 0.1 # [ps]
