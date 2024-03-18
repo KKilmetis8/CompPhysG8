@@ -72,7 +72,7 @@ colors = [c91, c92, c93, c94, c95, c96, c97, c98, c99]
 
 # Plotting
 import matplotlib.pyplot as plt
-plt.rcParams['text.usetex'] = False # be FAST
+plt.rcParams['text.usetex'] = True # be FAST
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['figure.figsize'] = [6 , 5]

@@ -21,8 +21,6 @@ from Particles import Particles
 # Simulation ID for saving
 time = time.strftime('%d-%h-%H:%M:%S', time.localtime())
 simname = f'{config.state_of_matter}_at_{time}'
-# No. of this simulation
-# simnum = int(max([0]+[float(file[3:])for file in listdir('sims')])+1)
 # Folder for figs
 makedirs(f"sims/{simname}/", exist_ok=True)
 #%% Make set of particles
@@ -46,9 +44,13 @@ for i in range(c.timesteps):
 if config.loud:
     print('Simulation is done')
     
-pressure = particles.pressure() # NOTE: CONVERT
+pressure = particles.pressure()
 pressure_string = f'{pressure}' 
 print('Pressure:', pressure_string)
+with open(f'sims/{simname}/params.txt', 'w') as f:    
+    f.write(f'{c.temperature} {c.density} {pressure}')
+    f.close()
+
 #%% Plotting   
 def pair_correlation_plot(simname):
     plt.figure()

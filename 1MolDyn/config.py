@@ -32,10 +32,10 @@ Specifies parameters of simulation.
     plot, bool: Set to true to generate a movie of the simulation
 """
 
-state_of_matter = 'Gas'
+state_of_matter = 'Custom'
 Nbodies = 108
-time = 15 # [ps] 
-timestep = 0.1 # [ps]
+time = 10 # [ps] 
+timestep = 0.001 # [ps]
 loud = True
 plot = False
 
@@ -49,7 +49,7 @@ elif state_of_matter == 'Gas':
     density = 0.3 # [M_ARGON/SIGMA^3]
     temperature = 3.0 # [EPSILON / K_BOLTZMAN]
 elif state_of_matter == 'Custom':
-    density = 13 # [M_ARGON/SIGMA^3]
-    temperature = 12 # [EPSILON / K_BOLTZMAN]
+    density = 0.5 # [M_ARGON/SIGMA^3]
+    temperature = 0.5 # [EPSILON / K_BOLTZMAN]
 else:
     raise ValueError('This state of matter does not exist')
