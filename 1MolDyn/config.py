@@ -35,7 +35,7 @@ Specifies parameters of simulation.
 state_of_matter = 'Custom'
 Nbodies = 108
 time = 10 # [ps] 
-timestep = 0.01 # [ps]
+timestep = 0.001 # [ps]
 loud = True
 plot = False
 
