@@ -17,10 +17,17 @@ import time
 import config
 import prelude as c
 from Particles import Particles
+from importlib import reload
+
+reload(c)
 
 # Simulation ID for saving
 time = time.strftime('%d-%h-%H:%M:%S', time.localtime())
-simname = f'{config.state_of_matter}_at_{time}'
+#simname = f'{config.state_of_matter}_at_{time}'
+simname = f'{c.density, c.temperature}'
+print(simname)
+
+
 # Folder for figs
 makedirs(f"sims/{simname}/", exist_ok=True)
 #%% Make set of particles
