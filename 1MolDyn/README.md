@@ -4,7 +4,7 @@
 
 This code was made to simulate Argon atoms at different states of matter by changing initial densities and temperatures. The atoms are simulated to be in a pseudo-infinite box by implementing the Minimal Image Convention.
 
-Forces are calculated using the Lennard-Jones potential: $V(r)=4\varepsilon\left[\left(\frac{r}{\sigma}\right)^{12} - \left(\frac{r}{\sigma}\right)^{6} \right]$, where $\varepsilon$ and $\sigma$ are constants, dependent on the used element. For Argon $\varepsilon = 119.8\ \mathrm{K}$ and $\sigma = 3.405\ \mathrm{Å}$. The argon atoms start off in a Face-Centred Cubic configuration, as if in a solid state. Dependent on the initial density and pressure, the simulation is run to equilibrate into a new configuration, which resembles the phase of matter identified by the inputted initial density and temperature. From then onwards the atoms are free to move and interact.
+Forces are calculated using the Lennard-Jones potential: $V(r)=4\varepsilon\left[\left(\frac{r}{\sigma}\right)^{12} - \left(\frac{r}{\sigma}\right)^{6} \right]$, where $\varepsilon$ and $\sigma$ are constants, dependent on the used element. For Argon $\varepsilon = 119.8\ k_\mathrm{B}\ \mathrm{K}$ and $\sigma = 3.405\ \mathrm{Å}$. The argon atoms start off in a Face-Centred Cubic configuration, as if in a solid state. Dependent on the initial density and pressure, the simulation is run to equilibrate into a new configuration, which resembles the phase of matter identified by the inputted initial density and temperature. From then onwards the atoms are free to move and interact.
 
 This code was created for Project 1: Molecular Dynamics of the MSc course "Computational Physics" at Leiden University, year 2024.
 
@@ -83,7 +83,6 @@ Example `pair_corr.pdf` image for a Solid configuration. The most notable featur
 Example `pair_corr.pdf` image for a Liquid configuration. The pair correlation plot for a liquid state is usually identifiable by having features of both Gas and Solid pair correlation plots.
 
 ![liquid](image/README/liquid.jpg)
-
 
 #### Other Files
 

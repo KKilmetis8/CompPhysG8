@@ -63,7 +63,7 @@ with open(f'sims/{simname}/params.txt', 'w') as f:
 def pair_correlation_plot(simname):
     plt.figure()
     radii, g_corrs = particles.g_pair_correlation()
-    plt.plot(radii * c.SIGMA, g_corrs, c='k',marker='h')
+    plt.plot(radii * c.SIGMA, g_corrs, c='k',marker='h', ls = ":", ms=3)
     plt.xlabel('r [Angstrom]', fontsize = 14)
     plt.ylabel('g(r)', fontsize = 14)
     plt.title(config.state_of_matter, fontsize = 14)
