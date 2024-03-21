@@ -2,15 +2,13 @@
 
 **Authors**: Konstantinos Kilmetis and Diederick Vroom
 
-This code was made to simulate Argon atoms at different states of matter by changing initial densities and temperatures. The atoms are simulated to be in a pseudo-infinite box by implementing the Minimal Image Convention, which creates a periodic-boundary effect similar to the classic arcade game "Pacman", where an atom reappears on the opposite edge when it crosses the box boundary. Distances between the atoms are measured as effective distances, where they take the Minimal Image Convention into account.
+This code was made to simulate Argon atoms at different states of matter by changing initial densities and temperatures. The atoms are simulated to be in a pseudo-infinite box by implementing the Minimal Image Convention.
 
 Forces are calculated using the Lennard-Jones potential: $V(r)=4\varepsilon\left[\left(\frac{r}{\sigma}\right)^{12} - \left(\frac{r}{\sigma}\right)^{6} \right]$, where $\varepsilon$ and $\sigma$ are constants, dependent on the used element. For Argon $\varepsilon = 119.8\ \mathrm{K}$ and $\sigma = 3.405\ \mathrm{Å}$. The argon atoms start off in a Face-Centred Cubic configuration, as if in a solid state. Dependent on the initial density and pressure, the simulation is run to equilibrate into a new configuration, which resembles the phase of matter identified by the inputted initial density and temperature. From then onwards the atoms are free to move and interact.
 
 This code was created for Project 1: Molecular Dynamics of the MSc course "Computational Physics" at Leiden University, year 2024.
 
 ## How to Use
-
-The important parts of the code consist of 3 files: `simulation.py`, `Particles.py`, and `Atom.py`. The code in each file is built up from the next. `Atom.py` contains the `Atom` class, which is the class associated with each Argon atom in the simulation and contains the steps to run the simulation. `Particles.py` contains the `Particles` class, which generalizes the `Atom` class to a collection of Argon atoms and mainly functions for convenience to run the simulation smoother. `simulation.py` is the main file which runs the simulation. Running this file runs a simulation, with the initial values written in `config.py`.
 
 ### Running a simulation
 
@@ -85,3 +83,12 @@ Example `pair_corr.pdf` image for a Solid configuration. The most notable featur
 Example `pair_corr.pdf` image for a Liquid configuration. The pair correlation plot for a liquid state is usually identifiable by having features of both Gas and Solid pair correlation plots.
 
 ![liquid](image/README/liquid.jpg)
+
+
+#### Other Files
+
+While the user only has to interact with `config.py`, the rest of the constituent parts of the code are summarized here.
+
+1. `Atom.py` contains the `Atom` class, which evolves each Argon atom in the simulation.
+2. `Particles.py` generalizes the `Atom` class to a collection of Argon atoms and hosts QoL functions.
+3. `simulation.py` is the main file which runs the simulation. Running this file runs a simulation, with the initial values written in `config.py`.

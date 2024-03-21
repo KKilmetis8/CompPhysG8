@@ -119,31 +119,6 @@ class Particles:
         -------
             Runs the simulation for 1 relaxation time
         '''
-        ## Maybe instead of that let's do run until change in kinetic energy
-        ## is small?
-        # window = 20
-        # roll = 5
-        # tol = 0.05
-        # # Run for a little while
-        # for i in range(window):
-        #     self.update(step = 'leapfrog')
-
-        # max_steps = 500 # Don't get stuck
-        # rolling_kinetic_energy = np.sum(self.all_energies[-window:][0]) / window
-        # for i in range(max_steps):
-        #     self.update(step = 'leapfrog')
-            
-        #     # Every roll steps, check for convergance in kin
-        #     if not i % roll:
-        #         kinetic = np.sum(self.all_energies[-roll:][0]) / roll
-        #         if np.abs(kinetic - rolling_kinetic_energy) < tol:
-        #             break
-        #         else:
-        #             rolling_kinetic_energy = np.sum(self.all_energies[-window:][0]) / window
-        #             print('Eq Try:', i // roll)
-        #             print(rolling_kinetic_energy, kinetic)
-        #             print(len(self.all_energies[0]))
-        
         for i in range(10): # need do decide this better.
             self.update(step = 'leapfrog')
 
@@ -168,13 +143,8 @@ class Particles:
         print('---------------------------')
         print(our_kinetic,"|", target)
         while np.abs(our_kinetic - target)/target > tolerance: 
-            # Calc Relax time
-            # mean_vel = np.abs(np.mean(self.velocities))
-            # number_density = c.density * c.inv_m_argon
-            # cross_section = np.pi * (2*c.R_ARGON / c.SIGMA)**2 #πd^2
-            # trelax = 1 /  (cross_section * mean_vel * np.sqrt(2) * number_density)
-            
-            # Run for one tenth of the relax time
+
+            # Run for a bit
             self.relax_run(1)
             
             # Check for equilibriation
@@ -197,12 +167,8 @@ class Particles:
             friends_matrix[i,i:] = particle.friends[i:]
 
         lj_pot_primes = self.particles[0].lj_pot_prime(friends_matrix)
-
         sum_part = np.nansum(friends_matrix * lj_pot_primes)
-
         self.pressure_sum_parts.append(sum_part)
-
-
 
     def pressure(self):
         '''Calculate the pressure, averaging all pressure_sum_parts
@@ -224,7 +190,7 @@ class Particles:
         ''' Calculate n(r) for a given snapshot '''
         # Ensure same r range is used
         if self.bin_edges is None:
-            self.bin_edges = np.arange(deltar, c.boxL, deltar) 
+            self.bin_edges = np.arange(deltar, np.sqrt(3) * c.boxL / 2, deltar) 
         n_corr = np.zeros(len(self.bin_edges[1:]))
         for i, particle in enumerate(self.particles):
             temp_n_corr, _ = np.histogram(particle.friends[i:], # dont overcount

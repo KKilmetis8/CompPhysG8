@@ -17,7 +17,7 @@ import prelude as c
 #%%
 
 # Load Data
-df = pd.read_csv('past_sims.tsv', header = 0, delimiter = '\t', comment='%')
+df = pd.read_csv('past_sims8.tsv', header = 0, delimiter = '\t', comment='%')
 
 # Make marker shapes, colours
 markers  = []
@@ -31,6 +31,8 @@ for state, den in zip(df['State'], df['Density']):
         marker = 'o'
     elif state == 'G':
         marker = '^'
+    elif state == 'D':
+        marker = 'h'
     else:
         marker = '*'
     markers.append(marker)
@@ -53,6 +55,8 @@ cbar = fig.colorbar(sm, ax= ax)
 cbar.set_label('Density $\\left[ m_\\mathrm{Ar}/\\sigma^{3} \\right] $', 
                rotation=90, fontsize = 14, labelpad = 5)
 
+cbar.set_ticks(np.arange(0.25, 1.25+0.25, 0.25))
+
 # Pretty
 ax.set_xlabel('Temperature $\\left[ \\varepsilon / k_{\\mathrm B} \\right] $', fontsize = 14)    
 ax.set_ylabel('Pressure $\\left[ \\varepsilon / \\sigma^3 \\right] $', fontsize = 14)    
@@ -66,10 +70,12 @@ custom_scatter = [ Line2D([0], [0], color = 'white', linestyle = '',
                    Line2D([0], [0], color = 'white',  linestyle = '',
                           markeredgecolor = 'k', marker = '^', markersize = 8),
                    Line2D([0], [0], color = 'white',  linestyle = '',
+                          markeredgecolor = 'k', marker = 'h', markersize = 8),
+                   Line2D([0], [0], color = 'white',  linestyle = '',
                           markeredgecolor = 'k', marker = '*', markersize = 12)
                  ]
-labels = ['Solid', 'Liquid', 'Gas', 'Co-existance']
-ax.legend(custom_scatter, labels, fontsize = 10, ncols = 4,
+labels = ['Solid', 'Liquid', 'Gas', 'Co-existance', 'Triple Point']
+ax.legend(custom_scatter, labels, fontsize = 8, ncols = 5,
           bbox_to_anchor=(0.83, 0.03), bbox_transform = fig.transFigure,)
 
 # Triple point
