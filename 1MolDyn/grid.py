@@ -1,16 +1,18 @@
 import config
 import prelude
 from importlib import reload
-import simulation
 
 
-Ts   = [0.5, 0.75, 1, 1.25, 1.5]
-rhos = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5]
+configs = [(2.0, 0.5), (1.5, 0.5), (0.25, 1), (0.25, 1.125), (2.5, 1)]
 
-for T in Ts:
-    for rho in rhos:
-        config.temperature = T
-        config.density = rho
-        reload(prelude)
-        print(prelude.density, prelude.temperature)
+first = True
+for T, rho in configs:
+    config.temperature = T
+    config.density = rho
+    reload(prelude)
+    print(prelude.density, prelude.temperature)
+    if first:
+        import simulation
+        first = False
+    else:
         reload(simulation)

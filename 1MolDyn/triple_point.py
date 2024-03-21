@@ -17,7 +17,7 @@ import prelude as c
 #%%
 
 # Load Data
-df = pd.read_csv('past_sims8.tsv', header = 0, delimiter = '\t', comment='%')
+df = pd.read_csv('past_sims.tsv', header = 0, delimiter = '\t', comment='%')
 
 # Make marker shapes, colours
 markers  = []

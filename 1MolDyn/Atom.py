@@ -10,10 +10,24 @@ import numpy as np
 import prelude as c
 
 class Atom:
-    ''' Each Argon Atom is an object of this class.'''
-    def __init__(self, pos, vel,
-                 color, markersize = 10):
+    def __init__(self, pos: np.ndarray, vel: np.ndarray,
+                 color: str, markersize: float | int = 10):
+        '''
+        Each Argon Atom is an object of this class.
         
+        Parameters
+        ----------
+        pos: array of length equal to c.dims, initial positions.
+
+        vel: array of length equal to c.dims, initial velocities.
+
+        color: string, color of the marker associated to this atom,
+               used during plotting.
+
+        markersize: float or int, size of the marker during plotting.
+        '''
+
+
         # Tuples
         self.pos = np.array(pos)
         self.oldpos = self.pos # update at the same time
@@ -42,16 +56,39 @@ class Atom:
             self.past_y = []
             self.past_z = []
             
-    def first_step(self, particles, me):
-        self.get_friends(particles, me) # Apply the minimum imaging convention
+    def first_step(self, particles: list | np.ndarray, me: int):
+        '''
+        Perform the first simulation step
+        Needed for appropiate behaviour
+
+        Parameters
+        ----------
+        particles: A list or numpy array of Atom objects that
+                   contains all the particles in the simulation.
+        
+        me: Integer, index of this particle in the particles list.
+        '''
+        # Apply the minimum imaging convention
+        self.get_friends(particles, me)
+
         self.old_force = self.force()
         
-    def get_friends(self, particles, me, step = 'leapfrog'):
+    def get_friends(self, particles: np.ndarray | list, me: int, step: str = 'leapfrog'):
         
         '''
         Returns the distances to the rest of the atoms,
         Appllying the minimum imaging convention
         
+        Parameters
+        ----------
+        particles: A list or numpy array of Atom objects that
+                   contains all the particles in the simulation.
+        
+        me: Integer, index of this particle in the particles list.
+        
+        step: String, which integration method to use. 
+              "leapfrog" for Verlet, "euler" for Euler.
+
         '''
         rs = np.zeros(len(particles))
         unitaries = np.zeros( (len(particles), c.dims))
@@ -86,27 +123,52 @@ class Atom:
         unitaries = unitaries[~np.isnan(unitaries)]
         self.directions = np.reshape(unitaries, (len(particles) - 1, c.dims))
 
-    def lj_pot(self, r):
-        ''' Calculates the Lennard-Jones potential '''
+    def lj_pot(self, r: float | np.ndarray) -> float | np.ndarray:
+        ''' 
+        Calculates the Lennard-Jones potential 
+        
+        Parameters
+        ----------
+        r: float or an array of floats, distances in Angstrom.
+
+        Returns
+        -------
+        lennard_jones: float or an array of floats, calculated potential values.
+        '''
         prefactor = 4 * c.epsilon
         pauli = c.sigma**12 / r**12
         vdWaals = c.sigma**6 / r**6
         lennard_jones = prefactor * ( pauli - vdWaals )
         return lennard_jones
 
-    def lj_pot_prime(self, r):
-        ''' Calculates the dU/dr for the Lennard-Jones potential '''
+    def lj_pot_prime(self, r: float | np.ndarray) -> float | np.ndarray:
+        ''' 
+        Calculates the dU/dr for the Lennard-Jones potential 
+        
+        Parameters
+        ----------
+        r: float or an array of floats, distances in Angstrom.
+
+        Returns
+        -------
+        U_prime: float or an array of floats, calculated potential derivatives.
+        '''
         prefactor = 4 * c.epsilon
         pauli = - 12 * c.sigma**12 / r**13
         vdWaals = - 6 * c.sigma**6 / r**7
         U_prime = prefactor * ( pauli - vdWaals )
         return U_prime
         
-    def force(self):
+    def force(self) -> np.ndarray:
         ''' 
         Calculate the force of each particle, with the Lennard Jones 
         Potential.
-        Friends must not be empty for this to work 
+        Friends must not be empty for this to work.
+
+        Returns
+        -------
+        force: array of floats, size equal to c.dims.
+               Net force from all other particles. 
         '''
         force = np.zeros(c.dims)
         for distance, direction in zip(self.friends, self.directions):
@@ -114,42 +176,76 @@ class Atom:
         return force
     
     def am_i_in_the_box(self):
-        ''' Applies the Pacman condition. 
-            If something moves outside the box, it appears on the other side'''
+        ''' 
+        Applies the Pacman condition. 
+        If something moves outside the box, it appears on the other side.
+        '''
         for d in range(c.dims):
             if self.pos[d] > c.boxL or self.pos[d] < 0:
                 self.pos[d] -= c.boxL * np.floor(self.pos[d] * c.inv_boxL)
         
     def vel_verlet_update_pos(self):
-        '''Much better verlet step '''
+        '''
+        Energy perserving Verlet step.
+        Applies one integration step for positions.
+        '''
         timestep = c.h_sim_units #* c.t_tilde # time units!!
         self.pos += self.vel * timestep + self.old_force * timestep**2 * 0.5 * c.inv_m_argon
         self.am_i_in_the_box() 
 
-    def vel_verlet_update_vel(self, particles, me):
-        timestep = c.h_sim_units # * c.t_tilde # time units!!
+    def vel_verlet_update_vel(self, particles: list | np.ndarray, me: int):
+        '''
+        Energy perserving Verlet step.
+        Applies one integration step for velocities.
+        
+        Parameters
+        ----------
+        particles: A list or numpy array of Atom objects that
+                   contains all the particles in the simulation.
+        
+        me: Integer, index of this particle in the particles list.
+        '''
+
         # Update oldpos
         self.get_friends(particles, me)
         new_force = self.force()
-        self.vel += 0.5 * timestep * (self.old_force + new_force) * c.inv_m_argon
+        self.vel += 0.5 * c.h_sim_units * (self.old_force + new_force) * c.inv_m_argon
         self.old_force = new_force
         
     def energy_update(self):
-        ''' Naive Euler Step that does not conserve energy'''
-        # NOTE: Unit problem.
-        self.kinetic = 0.5 * c.m_argon * np.linalg.norm(self.vel)**2#  * \
-                                          # c.vel_to_cgs)**2
+        ''' 
+        Updates the energy attributes to new values.
+        '''
+        self.kinetic = 0.5 * c.m_argon * np.linalg.norm(self.vel)**2
         potential = 0
-        for r in self.friends:
-            potential += self.lj_pot(r)
+        for dist in self.friends:
+            potential += self.lj_pot(dist)
         self.potential = potential
         self.total = self.kinetic + potential
 
-    def euler_update_vel(self, particles):
-        self.get_friends(particles) # Apply the minimum imaging convention
-        self.vel += self.force() * c.h_sim_units * c.inv_m_argon #* c.t_tilde
+    def euler_update_vel(self, particles: list | np.ndarray):
+        '''
+        Naive Euler step.
+        Applies one integration step for velocities.
         
-    def euler_update_pos(self, particles):
-        self.pos += self.vel * c.h_sim_units #* c.t_tilde # time units!!
+        Parameters
+        ----------
+        particles: A list or numpy array that contains all the 
+            particles in the simulation.
+        '''
+        self.get_friends(particles) # Apply the minimum imaging convention
+        self.vel += self.force() * c.h_sim_units * c.inv_m_argon
+        
+    def euler_update_pos(self, particles: np.ndarray | list):
+        '''
+        Naive Euler step.
+        Applies one integration step for positionsß.
+        
+        Parameters
+        ----------
+        particles: A list or numpy array that contains all the 
+            particles in the simulation.
+        '''
+        self.pos += self.vel * c.h_sim_units
         self.am_i_in_the_box()
         self.energy_update(particles)

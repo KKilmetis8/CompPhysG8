@@ -22,8 +22,8 @@ from importlib import reload
 reload(c)
 
 # Simulation ID for saving
-time = time.strftime('%d-%h-%H:%M:%S', time.localtime())
-simname = f'{config.state_of_matter}_at_{time}'
+time_of_creation = time.strftime('%d-%h-%H:%M:%S', time.localtime())
+simname = f'{config.state_of_matter}_at_{time_of_creation}'
 #simname = f'{c.density, c.temperature}'
 print(simname)
 
@@ -38,7 +38,8 @@ particles.equilibriate()
 current_progress = 0
 for i in range(c.timesteps):
     particles.update(step = 'leapfrog')
-    if not i % c.n_frequency: # Calculate n(r) every n_frequency timesteps
+    if not i % c.n_frequency: 
+        # Calculate n(r) and sum-part every n_frequency timesteps
         particles.n_pair_correlation()
         particles.pressure_sum_part()
     
@@ -61,8 +62,8 @@ with open(f'sims/{simname}/params.txt', 'w') as f:
 #%% Plotting   
 def pair_correlation_plot(simname):
     plt.figure()
-    r, g = particles.g_pair_correlation()
-    plt.plot(r * c.SIGMA, g, c='k',marker='h')
+    radii, g_corrs = particles.g_pair_correlation()
+    plt.plot(radii * c.SIGMA, g_corrs, c='k',marker='h')
     plt.xlabel('r [Angstrom]', fontsize = 14)
     plt.ylabel('g(r)', fontsize = 14)
     plt.title(config.state_of_matter, fontsize = 14)
@@ -120,7 +121,7 @@ def make_plot(index, particles):
     # plot particles
     ax.scatter(pos[0], pos[1], c = colors, zorder=3)
     
-    # plot arrows, maybe this should be with ax.arrow so we can change the length
+    # plot arrows
     ax.quiver(pos[0], pos[1], vnorms[0], vnorms[1], 
               headwidth = 5, headaxislength = 5, width = 0.003,
               angles='xy', zorder=2)

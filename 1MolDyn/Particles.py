@@ -9,13 +9,22 @@ class Particles:
 # Initialization methods
 #### --------------------------------------------------------------------------   
     def __init__(self, particles: np.ndarray | int, mode = 'FCC', 
-                 seed=c.rngseed):
-        ''' Initializes particles.
-            If an array of Atom objects is provided, it uses this. 
-            Otherwise it makes its own.
+                 seed: int =c.rngseed):
+        ''' Initializes a collection of particles.
             
-            mode, str. Accepts FCC and random. 
-            Chooses how to initialize positions.
+            Parameters
+            ----------
+            particles: An array of Atom objects that contains all the 
+                       particles in the simulation.
+                       Alternatively, particles can be an int, then 
+                       class will initialize a list of particles of 
+                       that size.
+            
+            mode: string, accepts FCC and random. Chooses how to 
+                  initialize positions.
+
+            seed: Which seed to use for radomization. If set to None,
+                  changes seed during each initialization.
             '''
         self.particles = particles
         self.rng = np.random.default_rng(seed=seed)
@@ -50,12 +59,20 @@ class Particles:
         self.bin_edges = None
         self.pressure_sum_parts = []
         
-    def init_position_FCC(self):
-        ''' Initializes the positions of the particles at'''
+    def init_position_FCC(self) -> np.ndarray:
+        ''' 
+        Initializes the positions of the particles via
+        Face-Centred Cubic configuration.
+
+        Returns
+        -------
+        pos: array of shape (108, 3) with positions of the
+             FCC-lattice.
+        '''
         unit_fcc = np.array([[0,0,0],
                              [1,1,0],
                              [0,1,1],
-                             [1,0,1]]) * 0.5 # Kon: ensures no overlap
+                             [1,0,1]]) * 0.5 # Ensures no overlap
         
         iterations = np.array(list(product(range(3), repeat=3)))
 
@@ -69,19 +86,30 @@ class Particles:
                                                       # correct normalization
         return pos
 
-    def init_velocities(self):
-        # Maxwell
-        # velocity_std = np.sqrt(c.EPSILON / c.M_ARGON) * np.sqrt(c.temperature / c.m_argon)
-        vels = np.random.normal(0, c.temperature, #velocity_std, # This could just be c.temperature
-                                size = (c.Nbodies, c.dims))
+    def init_velocities(self) -> np.ndarray:
+        '''
+        Generates the initial velocities via a Maxwell 
+        distribution with standard deviation equal to
+        temperatures.
+
+        Returns
+        ------
+        vels: Array of floats of shape (c.Nbodies, c.dims).
+        '''
+        vels = np.random.normal(0, c.temperature, size = (c.Nbodies, c.dims))
         return vels
 #### --------------------------------------------------------------------------
 # Main simulation loop
 #### --------------------------------------------------------------------------       
-    def update(self, step = 'leapfrog'):
+    def update(self, step: str = 'leapfrog'):
         """
         Updates the positions/velocities for each particle, 
         taking the forces from the other particles into account.
+
+        Parameters
+        ----------
+        step: String, which integration method to use. 
+              "leapfrog" for Verlet, "euler" for Euler.
         """
         if step == 'euler':
             for particle in self.particles:
@@ -90,14 +118,12 @@ class Particles:
                 particle.euler_update_vel(self.particles)
                 
         elif step == 'leapfrog':
-            # Any way to write this in a more elegant way?
             for particle in self.particles:
                 particle.vel_verlet_update_pos()
                 
             for me, particle in enumerate(self.particles):
                 particle.vel_verlet_update_vel(self.particles, me)
                 particle.energy_update()
-                #print(np.sum(self.energies[0]))
         else:
             raise ValueError('There is no ' + step + 'in Ba Sing Se')
             
@@ -108,23 +134,26 @@ class Particles:
 #### --------------------------------------------------------------------------
 # Equilibriation methods
 #### --------------------------------------------------------------------------      
-    def relax_run(self, trelax: float):
+    def relax_run(self, nsteps: int = 10):
         '''
+        Runs the simulation for a certain number of steps.
+
         Parameters
         ----------
-        trelax : float
-            Relaxation time of the particle set.
-
-        Returns
-        -------
-            Runs the simulation for 1 relaxation time
+        nsteps: integer, number of steps to run the simulation for.
         '''
-        for i in range(10): # need do decide this better.
+        for i in range(nsteps):
             self.update(step = 'leapfrog')
 
-    def rescale_vels(self, target):
-        ''' Rescales velocities to better match the expected Maxwellian 
-            distribution'''
+    def rescale_vels(self, target: float):
+        ''' 
+        Rescales velocities to better match the expected Maxwellian 
+        distribution.
+        
+        Parameters
+        ----------
+        target: The target kinetic energy.
+        '''
         total_kinetic = np.sum(self.energies[0])
         rescale_lambda = np.sqrt(target/total_kinetic)
         rescaled_vels = np.multiply(rescale_lambda, self.velocities)
@@ -136,7 +165,17 @@ class Particles:
             print('lamda', rescale_lambda)
             print(0.5 * np.sum(self.velocities)**2,"|", target)
         
-    def equilibriate(self, tolerance = 0.05):
+    def equilibriate(self, tolerance: float = 0.05):
+        '''
+        Equilibrate the simulation so it better matches reality.
+
+        Parameters
+        ----------
+        tolerance: float, the tolerance on the kinetic energy,
+                   with respect to the target kinetic energy,
+                   in which the simulation is in equilibrium.
+
+        '''
         our_kinetic = np.sum(self.energies[0])
         target = (len(self.particles) - 1) * (3/2) * c.temperature
         print('Our Kinetic energy | Target')
@@ -144,8 +183,8 @@ class Particles:
         print(our_kinetic,"|", target)
         while np.abs(our_kinetic - target)/target > tolerance: 
 
-            # Run for a bit
-            self.relax_run(1)
+            # Run for 10 steps
+            self.relax_run(10)
             
             # Check for equilibriation
             our_kinetic = np.sum(self.energies[0])
@@ -161,7 +200,10 @@ class Particles:
 # Observables
 #### --------------------------------------------------------------------------    
     def pressure_sum_part(self):
-        '''Calculate the sum part of the pressure equation for a single snapshot'''
+        '''
+        Calculate the sum part of the pressure equation for a single snapshot.
+        '''
+        # np.nans to avoid errors in lj_pot_primes calculation.
         friends_matrix = np.nan * np.ones((c.Nbodies, c.Nbodies-1))
         for i, particle in enumerate(self.particles):
             friends_matrix[i,i:] = particle.friends[i:]
@@ -170,9 +212,18 @@ class Particles:
         sum_part = np.nansum(friends_matrix * lj_pot_primes)
         self.pressure_sum_parts.append(sum_part)
 
-    def pressure(self):
-        '''Calculate the pressure, averaging all pressure_sum_parts
-        and including coefficients'''
+    def pressure(self) -> tuple[float, float]:
+        '''
+        Calculate the pressure, averaging all pressure_sum_parts
+        and including coefficients.
+
+        Also calculates the standard deviation
+
+        Returns
+        -------
+        out: (pressure, stdev), calculated pressure and associated 
+              standard deviation.
+        '''
 
         # Ideal gas
         ig_part = c.temperature * c.density
@@ -186,8 +237,14 @@ class Particles:
 
         return pressure, pressure_stdev
     
-    def n_pair_correlation(self, deltar=0.01):
-        ''' Calculate n(r) for a given snapshot '''
+    def n_pair_correlation(self, deltar: float = 0.01):
+        ''' 
+        Calculate n(r) for a given snapshot 
+        
+        Parameters
+        ----------
+        deltar: float, the bin size.
+        '''
         # Ensure same r range is used
         if self.bin_edges is None:
             self.bin_edges = np.arange(deltar, np.sqrt(3) * c.boxL / 2, deltar) 
@@ -198,8 +255,15 @@ class Particles:
             n_corr = np.add(n_corr, temp_n_corr)
         self.n_hists.append(n_corr)
     
-    def g_pair_correlation(self):
-        ''' Average all n(r), include coefficients for g(r)'''
+    def g_pair_correlation(self) -> tuple[np.ndarray, np.ndarray]:
+        ''' 
+        Average all n(r), include coefficients for g(r).
+        
+        Returns
+        -------
+        out: (bin_r, g_corr), the radii of the bins and the associated
+             correlation function value.
+        '''
         # Average
         n_corr = np.zeros(len(self.n_hists[0]))
         for hist in self.n_hists:
@@ -207,11 +271,11 @@ class Particles:
         n_corr = np.divide(n_corr, len(self.n_hists))
         
         # Ensure same r range is used
-        r = self.bin_edges[1:] 
-        deltar = r[1] - r[0]
+        bin_r = self.bin_edges[1:] 
+        deltar = bin_r[1] - bin_r[0]
         coeff  = 2 * c.boxL**3 / (4 * np.pi * c.Nbodies * (c.Nbodies - 1))
-        g_corr = coeff * n_corr / (r**2 * deltar) 
-        return r, g_corr
+        g_corr = coeff * n_corr / (bin_r**2 * deltar) 
+        return bin_r, g_corr
 #### --------------------------------------------------------------------------
 # Quality of Life
 #### --------------------------------------------------------------------------
