@@ -23,8 +23,8 @@ reload(c)
 
 # Simulation ID for saving
 time = time.strftime('%d-%h-%H:%M:%S', time.localtime())
-#simname = f'{config.state_of_matter}_at_{time}'
-simname = f'{c.density, c.temperature}'
+simname = f'{config.state_of_matter}_at_{time}'
+#simname = f'{c.density, c.temperature}'
 print(simname)
 
 

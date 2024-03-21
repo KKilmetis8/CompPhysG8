@@ -17,7 +17,7 @@ import prelude as c
 #%%
 
 # Load Data
-df = pd.read_csv('past_sims.tsv', header = 0, delimiter = '\s+')
+df = pd.read_csv('past_sims.tsv', header = 0, delimiter = '\t', comment='%')
 
 # Make marker shapes, colours
 markers  = []
@@ -42,7 +42,7 @@ ax.grid(zorder = 1)
 for i in range(len(markers)):
     if df['Pressure'][i] != 'negative':
         ax.scatter(df['Temperature'][i], float(df['Pressure'][i]),
-                c = colors[i], ec = 'k', 
+                color = colors[i], ec = 'k', 
                 marker = markers[i], s = 75, 
                 zorder = 3)
     
