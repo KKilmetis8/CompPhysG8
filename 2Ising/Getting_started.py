@@ -43,9 +43,7 @@ def plot_grid(grid: np.ndarray, cmap: str = c.cmap, title: str | None = None):
     cbar = fig.colorbar(img, ax = ax, cmap=colors, fraction=0.046, pad=0.04)
     cbar.ax.set_yticks(unique*(1-1/len(unique)))
     cbar.ax.set_yticklabels(unique.astype(int))
-
-    if title is not None:
-        ax.set_title(title)
+    ax.set_title(title)
 
 def total_magnetization(grid: np.ndarray) -> float:
     '''
@@ -181,7 +179,7 @@ rng  = np.random.default_rng(seed=c.rngseed)
 grid = np.sign(rng.random((c.Nsize, c.Nsize)) - 0.5)
 
 # random spin-flip
-flip_indices = np.random.randint(c.Nsize, size=2)
+flip_indices = rng.integers(c.Nsize, size=2)
 flipped = grid.copy()
 flipped[*flip_indices] *= -1
 
