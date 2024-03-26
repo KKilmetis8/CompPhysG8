@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 # Stracciatella import
 from scipy.signal import convolve2d
 import prelude as c
+from matplotlib.axes import Axes
 from importlib import reload
+from os import system, makedirs
 reload(c)
 
 # Convolve kernel
@@ -22,7 +24,7 @@ kernel = np.array([[0, 1, 0],
 
 #%%
 # Functions
-def plot_grid(grid: np.ndarray, cmap: str = c.cmap, title: str | None = None):
+def plot_grid(grid: np.ndarray, cmap: str = c.cmap, title: str | None = None) -> tuple[Axes, Axes]:
     '''
     Plot the grid.
 
@@ -34,7 +36,13 @@ def plot_grid(grid: np.ndarray, cmap: str = c.cmap, title: str | None = None):
 
     title: string or None, title to put above the plot.
            If set to None, does not put a title.
+
+    Returns
+    -------
+    (ax,cbar): matplotlib.Axes objects, references the main figure axis
+               and colorbar axis, respectively.
     '''
+    plt.ioff()
     unique = np.unique(grid)
     colors = plt.get_cmap(cmap, len(unique))
 
@@ -44,6 +52,8 @@ def plot_grid(grid: np.ndarray, cmap: str = c.cmap, title: str | None = None):
     cbar.ax.set_yticks(unique*(1-1/len(unique)))
     cbar.ax.set_yticklabels(unique.astype(int))
     ax.set_title(title)
+    return ax, cbar
+
 
 def total_magnetization(grid: np.ndarray) -> float:
     '''
@@ -125,7 +135,7 @@ def probability_ratio(grid1: np.ndarray, grid2: np.ndarray) -> float:
     ratio: The probability ratio p(grid1)/p(grid2)
     '''
     Ham1, Ham2 = Hamiltonian(grid1), Hamiltonian(grid2)
-    ratio = np.exp((Ham2-Ham1)/c.temperature)
+    ratio = np.exp((Ham2-Ham1) * c.beta)
     return ratio
 
 def trial_prob(grid_now: np.ndarray, grid_next: np.ndarray) -> float:
@@ -172,6 +182,104 @@ def accept_prob(grid_now: np.ndarray, grid_next: np.ndarray) -> float:
         return 1
     else:
         return prob_ratio
+    
+def transition_prob(grid_now: np.ndarray, grid_next: np.ndarray) -> float:
+    '''
+    T(x->x')
+    Calculates the probability of changing from grid_now to grid_next.
+
+    Parameters
+    ----------
+    grid_now:  np.ndarray, the current (Nsize, Nsize) grid.
+
+    grid_next: np.ndarray, the next (Nsize, Nsize) grid.
+
+    Returns
+    -------
+    T: float, state change probability.
+    '''
+    return trial_prob(grid_now, grid_next) * accept_prob(grid_now, grid_next)
+
+def Metropolis(grid: np.ndarray, steps: int = c.Nsize**2) -> np.ndarray:
+    '''
+    Performs the Metropolis algorithm.
+
+    Parameters
+    ----------
+    grid: np.ndarray, the starting (Nsize, Nsize) grid. (x_0)
+
+    steps: int, how many steps to perform the Metropolis algorithm.
+           Default value of c.Nsize**2 as to give every spin a chance
+           to flip.
+
+    Returns
+    -------
+    all_grids: array, all the used grids in the sequence.
+    '''
+    all_grids = np.zeros((steps+1, *grid.shape))
+    all_grids[0] = grid
+
+    for i in range(steps):
+        old_grid = all_grids[i]
+
+        # Generate single-flip grid
+        flip_indices = rng.integers(c.Nsize, size=2)
+        new_grid = old_grid.copy()
+        new_grid[*flip_indices] *= -1
+
+        A_param = accept_prob(old_grid, new_grid)
+        if (A_param >= 1) or (np.random.random() < A_param):
+            all_grids[i+1] = new_grid
+        else:
+            all_grids[i+1] = old_grid
+
+    return all_grids
+
+def make_movie(grids: np.ndarray, nplots: int):
+    '''
+    Creates a movie showing how the grid evolves over time.
+
+    Parameters
+    ----------
+    grids: A 3D numpy array which has the grids.
+
+    nplots: The number of plots to put in the movie, equally spaced.
+    '''
+    makedirs('movie', exist_ok=True)
+
+    plot_indices = np.linspace(0,len(grids)-1, nplots, dtype=int)
+
+    for i, index in enumerate(plot_indices):
+        grid = grids[index]
+        plot_grid(grid)
+        plt.savefig(f'movie/{i+1}grid.png')
+        plt.close()
+    system('ffmpeg -i movie/%dgrid.png -c:v libx264 -r 30 movie/movie.mp4 -loglevel panic')
+
+def avg_magnetization_plot(grids: np.ndarray) -> Axes:
+    '''
+    Creates a figure showing the average magnetization over time.
+
+    Parameters
+    ----------
+    grids: A 3D numpy array which has the grids.
+    
+    Returns
+    -------
+    ax: matplotlib.Axes object, references the main figure axis.
+    '''
+    avg_mags = [avg_magnetization(grid) for grid in grids]
+    time = np.arange(len(grids)) / c.Nsize**2
+
+    fig, ax = plt.subplots(1,1)
+    ax.plot(time, avg_mags)
+
+    ax.set_xlim(time[0], time[-1])
+
+    ax.set_ylabel('Average magnetization $\\left(m=M/N^2\\right)$')
+    ax.set_xlabel('Monte Carlo steps per lattice site $\\left(\\mathrm{steps}/N^2 \\right)$')
+
+    return ax
 
 #%%
 # Grid initialization
@@ -184,6 +292,12 @@ flipped = grid.copy()
 flipped[*flip_indices] *= -1
 
 plot_grid(grid, title='Initial grid')
-plot_grid(flipped, title=f"{flip_indices} flipped")
+ax, _ = plot_grid(flipped, title=f"{flip_indices} flipped")
+
+flipped_coords_x = [flip_indices[1]-0.5, flip_indices[1]+0.5, flip_indices[1]+0.5, flip_indices[1]-0.5, flip_indices[1]-0.5]
+flipped_coords_y = [flip_indices[0]+0.5, flip_indices[0]+0.5, flip_indices[0]-0.5, flip_indices[0]-0.5, flip_indices[0]+0.5]
+
+ax.plot(flipped_coords_x, flipped_coords_y, "k", lw=1)
+
 plot_grid(neighbor_sum(grid), title='Neighbors summed')
 # %%
