@@ -8,10 +8,10 @@ import numpy as np
 
 
 # Things to change
-temperature = 1.5 # k_B = 1
+temperature = 2.269 # 2.269 # 2.269 # k_B = 1
 Nsize       = 50
 rngseed     = None
-
+loud        = True
 J_coupling = 1
 H_ext      = 0
 
@@ -20,11 +20,11 @@ H_ext      = 0
 critical_temp = (2/np.log(1+np.sqrt(2))) * J_coupling
 beta = 1/temperature
 
-# Plotting
-cmap = "coolwarm"
+# Plotting 
+cmap = "coolwarm" # coolwarm, PuOr, PiYG
 
 import matplotlib.pyplot as plt
-plt.rcParams['text.usetex'] = False # be FAST or slow?
+plt.rcParams['text.usetex'] = False # False makes it fast, true makes it slow.
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['figure.figsize'] = [6 , 5]
