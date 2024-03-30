@@ -11,10 +11,10 @@ import numpy as np
 temperature = 2.269 # 2.269 # 2.269 # k_B = 1
 Nsize       = 50
 rngseed     = None
-loud        = True
+loud        = False
 J_coupling = 1
 H_ext      = 0
-
+kind = 'sweep' # or sweep
 
 # Derived
 critical_temp = (2/np.log(1+np.sqrt(2))) * J_coupling
