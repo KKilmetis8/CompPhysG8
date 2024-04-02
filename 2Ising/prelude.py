@@ -14,7 +14,7 @@ rngseed     = None
 loud        = False
 J_coupling = 1
 H_ext      = 0
-kind = 'sweep' # or sweep
+kind = 'sweep' # single or sweep
 
 # Derived
 critical_temp = (2/np.log(1+np.sqrt(2))) * J_coupling

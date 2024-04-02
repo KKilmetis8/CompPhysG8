@@ -37,7 +37,7 @@ def grid(grid_p: np.ndarray, cmap: str = c.cmap, title: str | None = None) -> tu
     colors = plt.get_cmap(cmap, len(unique))
 
     fig, ax = plt.subplots(1,1)
-    img = ax.imshow(grid_p, colors, origin='lower', vmax = 1.5, vmin = -1.5)
+    img = ax.imshow(grid_p, colors, origin='lower')#, vmax = 1.5, vmin = -1.5)
     cbar = fig.colorbar(img, ax = ax, cmap=colors, fraction=0.046, pad=0.04)
     cbar.ax.set_yticks(unique*(1-1/len(unique)))
     cbar.ax.set_yticklabels(unique.astype(int))
