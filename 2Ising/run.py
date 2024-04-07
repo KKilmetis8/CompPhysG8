@@ -38,6 +38,3 @@ if c.kind == 'sweep':
         Magnetizations[i] = aux.avg_magnetization(grids[-1])
     
     plot.mag_temp(Temperatures, Magnetizations)
-
-    
-    
