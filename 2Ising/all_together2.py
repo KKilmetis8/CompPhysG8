@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.signal import convolve2d
 import matplotlib.pyplot as plt
+from plotters import grid as plot_grid
 
 #%%
 kernel = np.array([[0, 1, 0], 
@@ -11,7 +12,7 @@ rng  = np.random.default_rng(None)
 
 N = 20
 T = 2
-steps = 100_000
+steps = 1000_000
 
 J = 1
 H = 0
@@ -39,6 +40,14 @@ def moving_average(a, n=3):
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
+def calc_iteration(init_grid, flips_indices, index):
+    grid = init_grid.copy()
+    valid_flips = flips_indices[np.where(flips_indices[:index+1,0] >= 0)]
+    for flip_row, flip_col in valid_flips:
+        grid[flip_row, flip_col] *= -1
+    return grid
+
+
 # Initialize holders
 all_energies = np.zeros(steps+1)
 all_avg_mags = np.zeros(steps+1)
@@ -46,7 +55,8 @@ all_avg_mags = np.zeros(steps+1)
 all_energies[0] = Hamiltonian(init_grid)
 all_avg_mags[0] = init_grid.mean()
 
-last_grid = init_grid.copy()
+last_grid     = init_grid.copy()
+flips_indices = -np.ones((steps,2), dtype=int)
 for i in range(steps):
     # Generate single-flip grid 
     flip_row, flip_col = rng.integers(N, size = 2)
@@ -61,7 +71,7 @@ for i in range(steps):
     bottom_neighbor  = last_grid[(flip_row+1)%N, flip_col]
 
     neighbors_sum  = top_neighbor + left_neighbor + right_neighbor + bottom_neighbor
-    energy_diff    = 4*J*flipped_spin*neighbors_sum
+    energy_diff    = 4*J*flipped_spin*neighbors_sum + 2*H*flipped_spin
     
     prob_ratio = np.exp(-energy_diff * beta)
 
@@ -69,6 +79,7 @@ for i in range(steps):
         all_energies[i+1] = all_energies[i] + energy_diff
         all_avg_mags[i+1] = new_grid.mean()
         last_grid = new_grid.copy()
+        flips_indices[i] = [flip_row,flip_col]
         continue
 
     all_energies[i+1] = all_energies[i]
@@ -106,7 +117,7 @@ ax[0].grid(False)
 ax[1].grid(False)
 
 plt.figure()
-split = np.split(all_energies/max_energy, np.arange(steps, step=10_000)[1:])
+split = np.split(all_energies/max_energy, np.arange(steps, step=steps//10)[1:])
 lines = np.zeros((len(split),2))
 for i in range(len(split)):
     section = split[i]
@@ -118,5 +129,13 @@ for i in range(len(split)):
     plt.plot(x_range, line[0]*x_range + line[1], lw=2, c='k', ls='--')
 
 plt.axhline(y=-1, c='k', ls=':')
+
+plt.figure()
+plt.plot(lines[:,0], lines[:,1], marker='o')
+plt.axhline(y=-1, c='k', ls='--')
+plt.axvline(x=0, c='k', ls='--')
+
+plot_grid(calc_iteration(init_grid, flips_indices, int(steps*0.4)))
+
 plt.show()
 # %%
