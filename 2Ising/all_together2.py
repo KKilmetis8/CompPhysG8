@@ -10,7 +10,7 @@ kernel = np.array([[0, 1, 0],
 
 rng  = np.random.default_rng(None)
 
-N = 20
+N = 50
 T = 2
 steps = 1000_000
 
@@ -20,6 +20,8 @@ H = 0
 beta = 1/T
 
 init_grid = np.sign(rng.random((N, N)) - 0.5)
+init_grid = np.ones((N, N))
+init_grid[(N-10)//2:-(N-10)//2] *= -1
 #init_grid = np.ones((N,N))
 
 def Hamiltonian(grid: np.ndarray) -> float:
