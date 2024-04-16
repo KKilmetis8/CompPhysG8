@@ -116,6 +116,13 @@ def metropolis(init_grid, steps, T, init_energy, J, H):
         all_energies[i+1] = all_energies[i]
         all_avg_mags[i+1] = last_grid.mean()
     return all_energies, all_avg_mags, converged
+
+def chi(step, m, t_max):
+    t_diff = t_max - step
+    term1  = 1/t_diff*(m[:t_diff+1] * m[step:]).sum()
+    term2  = (1/t_diff**2) * (m[:t_diff+1].sum()*m[step:].sum())
+    return term1 - term2
+
 #%%
 N = 20
 MC_step = N**2
@@ -124,7 +131,7 @@ J = 1
 H = 0
 chunk_size = 20
 x_array = np.arange(chunk_size*MC_step)
-Ts = np.arange(1, 4, step = 0.1)
+Ts = np.arange(1, 5, step = 0.1)
 mags = []
 convergance = []
 
@@ -138,10 +145,14 @@ init_grid = np.sign(rng.random((N, N)) - 0.5)
 
 init_energy = Hamiltonian(init_grid)
 
+
+ms = []
 for T in tqdm(Ts):
     e, m, c = metropolis(init_grid, steps, T, init_energy, J, H)
+    
     mags.append( m[-50*MC_step:].mean() )
     convergance.append(c)
+    ms.append(m[-50*MC_step:])
 #plt.plot(convergance)
 # mags2 = []
 # init_grid = np.ones((N, N))*(-1)
@@ -165,17 +176,21 @@ plt.ylim(-1.2,1.2)
 plt.xlim(Ts.min()*0.8, Ts.max()*1.2)
 
 #%%
-for i in (ls := range(4)):
-    for j in range(len(ls)):
-        top    = ((i-1)%len(ls), j)
-        left   = (i, (j-1)%len(ls))
-        right  = (i, (j+1)%len(ls))
-        bottom = ((i+1)%len(ls), j)
+ts = np.arange(steps//MC_step-10, steps//MC_step)*MC_step
+for m in ms:
+    chis = np.array([chi(t, m, steps) for t in ts])
 
-        print(f"       | {top} |        ")
-        print( "-------+--------+-------")
-        print(f"{left} | {i,j} | {right}")
-        print( "-------+--------+-------")
-        print(f"       | {bottom} |        ")
-        print()
+    a, b = np.polyfit(ts, np.log(chis), deg=1)
+    tau  = -1/a
+    chi0 = np.exp(b)
+
+    avg_rel_error = (np.abs(chis - chi0*np.exp(-ts/tau))/chis).mean()
+    print(tau, avg_rel_error)
+
+    # ts_fit = np.linspace(0, ts[-1], 1000)
+    # plt.figure()
+    # plt.plot(ts, chis, marker='o')
+    # plt.plot(ts_fit, chi0*np.exp(-ts_fit/tau))
+    # #plt.axhline(0)
+
 # %%
