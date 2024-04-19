@@ -91,24 +91,24 @@ def metropolis(init_grid, steps, T, init_energy, J, H, rtol=1e-3, atol=1e-4, chu
 
 
 #%%
-N = 20
+N = 50
 MC_step = N**2
 steps = 10_000*MC_step
 J = 1
 H = 0
 chunk_size = 20
 x_array = np.arange(chunk_size*MC_step)
-Ts = np.arange(1, 5, step = 0.1)
+Ts = np.arange(1, 4, step = 0.05)
 mags = []
 convergence = []
 
 # ----- 75% Positive ----- #
-#flip = rng.integers(N, size = (2, N**2//4))
-# init_grid = np.ones((N, N))
-# init_grid[flip[0], flip[1]] = -1
+flip = rng.integers(N, size = (2, N**2//4))
+init_grid = np.ones((N, N))
+init_grid[flip[0], flip[1]] = -1
 
 # ----- Random ----- #
-init_grid = np.sign(rng.random((N, N)) - 0.5)
+# init_grid = np.sign(rng.random((N, N)) - 0.5)
 
 init_energy = Hamiltonian(init_grid)
 
@@ -130,15 +130,6 @@ for T in tqdm(Ts):
     ms.append(m[-buffer*N**2:])
 last_grids.close()
 
-#plt.plot(convergence)
-# mags2 = []
-# init_grid = np.ones((N, N))*(-1)
-# init_grid[flip[0], flip[1]] = 1
-# init_energy = Hamiltonian(init_grid)
-# print(init_grid.mean())
-# for T in tqdm(Ts):
-#     e, m = metropolis(init_grid, steps, T, init_energy, H)
-#     mags2.append( m[-50*MC_step:].mean() )
 #%%
 # black = converged, red = did not converge
 colors = ["k" if converged else "r" for converged in convergence]
@@ -159,30 +150,38 @@ plt.ylim(-1.2,1.2)
 plt.xlim(Ts.min()*0.8, Ts.max()*1.2)
 
 #%%
+@numba.njit( nopython=True, nogil=True)
 def chi(step, arr):
     t_diff = len(arr) - step
     term1  = (1/t_diff)*(arr[:t_diff] * arr[step:]).sum()
     term2  = (1/t_diff**2) * (arr[:t_diff].sum()*arr[step:].sum())
     return term1 - term2
 
-
+from scipy.optimize import curve_fit
+def exponential(t, x0, tau):
+    return x0 * np.exp(-t/tau)
 chi_figs = PdfPages('chi_figs.pdf')
-for i,m in enumerate(ms):
+taus = []
+for i,m in tqdm(enumerate(ms)):
     ts = np.arange(len(m))
-    chis = np.array([chi(t, np.abs(m)) for t in ts])
-    up_to = np.where(chis <= 0)[0]
+    chis = np.array([chi(t, m) for t in ts])
+    up_to = np.where(chis <= 1e-7)[0] # needs to be dynamic
     
     if len(up_to) != 0:
         up_to = up_to[0]
     else:
         up_to = -1
 
-    a, b = np.polyfit(ts[:up_to], np.log(chis[:up_to]), deg=1)
-    tau  = -1/a
-    chi0 = np.exp(b)
-
-    avg_rel_error = (np.abs(chis[:up_to] - chi0*np.exp(-ts[:up_to]/tau))/chis[:up_to]).mean()
-    print(f"({i+1:{len(str(len(ms)))}d}/{int(len(ms))}): tau = {tau:6.3f}, avg_rel_error = {avg_rel_error:6.3f}", end= '\r')
+    # a, b = np.polyfit(ts[:up_to], np.log(chis[:up_to]), deg=1)
+    # tau  = -1/a
+    # taus.append(tau)
+    popt, _ = curve_fit(exponential,ts[:up_to], chis[:up_to])
+    tau = popt[-1]
+    taus.append(tau)
+    chi0 = popt[0]
+    continue
+    # avg_rel_error = (np.abs(chis[:up_to] - chi0*np.exp(-ts[:up_to]/tau))/chis[:up_to]).mean()
+    # print(f"({i+1:{len(str(len(ms)))}d}/{int(len(ms))}): tau = {tau:6.3f}, avg_rel_error = {avg_rel_error:6.3f}", end= '\r')
 
     ts_fit = np.linspace(0, ts[-1], 10000)
     fig = plt.figure()
@@ -191,13 +190,26 @@ for i,m in enumerate(ms):
     plt.axhline(y=0, c='k', ls='--')
     plt.axvline(x=up_to/MC_step, c='k', ls='--')
 
-    plt.xlabel('Monte Carlo steps per lattice site $\\left(\\mathrm{steps}/N^2 \\right)$')
-    plt.ylabel('$\\chi$')
+    # plt.xlabel('Monte Carlo steps per lattice site $\\left(\\mathrm{steps}/N^2 \\right)$')
+    # plt.ylabel('$\\chi$')
 
-    plt.title(f'T = {Ts[i]:.2f}: $\\tau = {tau:.2f},\\;\\varepsilon = {avg_rel_error:.2f}$')
+    # plt.title(f'T = {Ts[i]:.2f}: $\\tau = {tau:.2f},\\;\\varepsilon = {avg_rel_error:.2f}$')
     chi_figs.savefig(fig)
-    plt.close(fig)
 
+    plt.close(fig)
 chi_figs.close()
+#%%
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.plot(Ts, mags, ls = ':', marker = '.', c='k')
+ax.set_ylabel('Avg Mags')
+ax.set_ylim(-1.1, 1,1)
+ax2 = ax.twinx()
+ax2.plot(Ts, np.array(taus)/50**2, ls = '-', marker = '.', c='maroon')
+ax2.set_ylabel('Auto-corr time')
+plt.xlabel('Temperature')
 
 # %%
+np.save('taus', np.array(taus))
+np.save('mags', np.array(mags))
+np.save('temps', Ts)
