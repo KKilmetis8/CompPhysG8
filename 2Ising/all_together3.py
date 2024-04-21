@@ -91,7 +91,7 @@ def metropolis(init_grid, steps, T, init_energy, J, H, rtol=1e-3, atol=1e-4, chu
 
 
 #%%
-N = 50
+N = 30
 MC_step = N**2
 steps = 10_000*MC_step
 J = 1
@@ -99,6 +99,7 @@ H = 0
 chunk_size = 20
 x_array = np.arange(chunk_size*MC_step)
 Ts = np.arange(1, 4, step = 0.05)
+# Ts = np.array([1, 1.5, 2.1, 2.2, 2.3, 2.4, 3, 3.5])
 mags = []
 convergence = []
 
@@ -112,23 +113,24 @@ init_grid[flip[0], flip[1]] = -1
 
 init_energy = Hamiltonian(init_grid)
 
-
 ms = []
+es = []
 buffer = 100
-last_grids = PdfPages('last_grids.pdf')
+# last_grids = PdfPages('last_grids.pdf')
 for T in tqdm(Ts):
     e, m, c, eq_grid = metropolis(init_grid, steps, T, init_energy, J, H,
                                   rtol=1e-3, atol=1e-4, buffer=buffer)
     
-    fig = plt.figure()
-    plt.imshow(eq_grid, origin='lower', cmap='coolwarm')
-    last_grids.savefig(fig)
-    plt.close(fig)
+    # fig = plt.figure()
+    # plt.imshow(eq_grid, origin='lower', cmap='coolwarm')
+    # last_grids.savefig(fig)
+    # plt.close(fig)
 
     mags.append( m[-buffer*N**2:].mean() )
     convergence.append(c)
     ms.append(m[-buffer*N**2:])
-last_grids.close()
+    es.append(e[-buffer*N**2:])
+# last_grids.close()
 
 #%%
 # black = converged, red = did not converge
@@ -150,21 +152,25 @@ plt.ylim(-1.2,1.2)
 plt.xlim(Ts.min()*0.8, Ts.max()*1.2)
 
 #%%
-@numba.njit( nopython=True, nogil=True)
-def chi(step, arr):
-    t_diff = len(arr) - step
-    term1  = (1/t_diff)*(arr[:t_diff] * arr[step:]).sum()
-    term2  = (1/t_diff**2) * (arr[:t_diff].sum()*arr[step:].sum())
-    return term1 - term2
+@numba.njit(parallel=True)
+def chi(steps, arr):
+    chis = np.zeros(len(steps))
+    for i in numba.prange(len(steps)):
+        t_diff = len(arr) - steps[i]
+        term1  = (1/t_diff)*(arr[:t_diff] * arr[steps[i]:]).sum()
+        term2  = (1/t_diff**2) * (arr[:t_diff].sum()*arr[steps[i]:].sum())
+        chis[i]    = term1 - term2
+    return chis
 
 from scipy.optimize import curve_fit
 def exponential(t, x0, tau):
     return x0 * np.exp(-t/tau)
-chi_figs = PdfPages('chi_figs.pdf')
+
+# chi_figs = PdfPages('chi_figs.pdf')
 taus = []
 for i,m in tqdm(enumerate(ms)):
     ts = np.arange(len(m))
-    chis = np.array([chi(t, m) for t in ts])
+    chis = chi(ts, m)
     up_to = np.where(chis <= 1e-7)[0] # needs to be dynamic
     
     if len(up_to) != 0:
@@ -172,17 +178,14 @@ for i,m in tqdm(enumerate(ms)):
     else:
         up_to = -1
 
-    # a, b = np.polyfit(ts[:up_to], np.log(chis[:up_to]), deg=1)
-    # tau  = -1/a
-    # taus.append(tau)
     popt, _ = curve_fit(exponential,ts[:up_to], chis[:up_to])
     tau = popt[-1]
     taus.append(tau)
-    chi0 = popt[0]
     continue
+    chi0 = popt[0]
     # avg_rel_error = (np.abs(chis[:up_to] - chi0*np.exp(-ts[:up_to]/tau))/chis[:up_to]).mean()
     # print(f"({i+1:{len(str(len(ms)))}d}/{int(len(ms))}): tau = {tau:6.3f}, avg_rel_error = {avg_rel_error:6.3f}", end= '\r')
-
+    
     ts_fit = np.linspace(0, ts[-1], 10000)
     fig = plt.figure()
     plt.plot(ts/MC_step, chis)
@@ -194,10 +197,10 @@ for i,m in tqdm(enumerate(ms)):
     # plt.ylabel('$\\chi$')
 
     # plt.title(f'T = {Ts[i]:.2f}: $\\tau = {tau:.2f},\\;\\varepsilon = {avg_rel_error:.2f}$')
-    chi_figs.savefig(fig)
+   # chi_figs.savefig(fig)
 
     plt.close(fig)
-chi_figs.close()
+# chi_figs.close()
 #%%
 fig = plt.figure()
 ax = fig.add_subplot(111)
@@ -209,7 +212,75 @@ ax2.plot(Ts, np.array(taus)/50**2, ls = '-', marker = '.', c='maroon')
 ax2.set_ylabel('Auto-corr time')
 plt.xlabel('Temperature')
 
-# %%
-np.save('taus', np.array(taus))
-np.save('mags', np.array(mags))
-np.save('temps', Ts)
+
+#%% Observables
+
+fig, axs = plt.subplots(2,2, figsize = (8,6), tight_layout = True)
+
+# Mean absolute spin
+obs1 = np.zeros(len(ms))
+sigma1 = np.zeros(len(ms))
+for i in range(len(ms)):
+    m = np.array(ms[i])
+    obs1[i] = np.abs(m.mean())
+    var1 = np.abs( np.mean(m**2) - np.mean(m)**2)
+    sigma1[i] = np.sqrt(2*taus[i]/len(m) * var1)
+axs[0,0].errorbar(Ts, obs1, yerr = sigma1, 
+             ls=':', marker='h', c='k', capsize = 4)
+axs[0,0].set_xlabel('Temperature', fontsize = 14)
+axs[0,0].set_ylabel('Mean absolute spin', fontsize = 14)
+
+# Energy per spin
+obs2 = np.zeros(len(ms))
+sigma2 = np.zeros(len(ms))
+for i in range(len(es)):
+    e = np.array(es[i]) / N**2  
+    obs2[i] = e.mean()
+    var2 = np.abs( np.mean(e**2) - np.mean(e)**2)
+    sigma2[i] = np.sqrt(2*taus[i]/len(e) * var2)
+axs[0,1].errorbar(Ts, obs2, yerr = sigma2, 
+             ls=':', marker='h', c='k', capsize = 4)
+axs[0,1].set_xlabel('Temperature', fontsize = 14)
+axs[0,1].set_ylabel('Energy per spin', fontsize = 14)
+
+# Magnetic susceptibility
+obs3 = np.zeros(len(ms))
+sigma3 = np.zeros(len(ms))
+for i in range(len(ms)): # loops over runs
+    m = np.array(ms[i])
+    chunksize = int(16*taus[i])
+    chunk_chi_ms = 0
+    total_chuncks = 0
+    prefactor = 1/Ts[i] # * 1/N** ms are already averaged over the grid
+    for j in range(chunksize, len(m), chunksize): # loops over tau chunks
+        chunk_m = m[j-chunksize:j]
+        chunk_chi_ms += np.mean(chunk_m**2) - np.mean(chunk_m)**2
+        total_chuncks += 1
+    sigma3[i] = prefactor * chunk_chi_ms / total_chuncks
+    obs3[i] = prefactor * (np.mean(m**2) - np.mean(m)**2)
+
+axs[1,0].errorbar(Ts, obs3, yerr = sigma3, 
+             ls=':', marker='h', c='k', capsize = 4)
+axs[1,0].set_xlabel('Temperature', fontsize = 14)
+axs[1,0].set_ylabel('Magnetic susceptibility', fontsize = 14)
+
+# Specific heat per spin susceptibility
+obs4 = np.zeros(len(ms))
+sigma4 = np.zeros(len(ms))
+for i in range(len(es)): # loops over runs
+    e = np.array(es[i])
+    chunksize = int(16*taus[i])
+    chunk_cs = 0
+    total_chuncks = 0
+    prefactor = 1/Ts[i]**2 * 1/N**2
+    for j in range(chunksize, len(e), chunksize): # loops over tau chunks
+        chunk_c = e[j-chunksize:j]
+        chunk_cs += np.mean(chunk_c**2) - np.mean(chunk_c)**2
+        total_chuncks += 1
+    sigma4[i] = prefactor * chunk_cs / total_chuncks
+    obs4[i] = prefactor * (np.mean(e**2) - np.mean(e)**2)
+
+axs[1,1].errorbar(Ts, obs4, yerr = sigma4, 
+             ls=':', marker='h', c='k', capsize = 4)
+axs[1,1].set_xlabel('Temperature', fontsize = 14)
+axs[1,1].set_ylabel('Specific heat per spin', fontsize = 14)
