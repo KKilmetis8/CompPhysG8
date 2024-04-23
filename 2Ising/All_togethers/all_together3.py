@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.signal import convolve2d
-from scipy.ndimage import convolve
 import matplotlib.pyplot as plt
-from plotters import grid as plot_grid
 from tqdm import tqdm
 import numba
 from matplotlib.backends.backend_pdf import PdfPages
@@ -98,7 +96,7 @@ J = 1
 H = 0
 chunk_size = 20
 x_array = np.arange(chunk_size*MC_step)
-Ts = np.arange(1, 4, step = 0.05)
+Ts = np.arange(1, 4, 0.2)
 # Ts = np.array([1, 1.5, 2.1, 2.2, 2.3, 2.4, 3, 3.5])
 mags = []
 convergence = []
@@ -115,7 +113,7 @@ init_energy = Hamiltonian(init_grid)
 
 ms = []
 es = []
-buffer = 100
+buffer = 200
 # last_grids = PdfPages('last_grids.pdf')
 for T in tqdm(Ts):
     e, m, c, eq_grid = metropolis(init_grid, steps, T, init_energy, J, H,
@@ -156,10 +154,10 @@ plt.xlim(Ts.min()*0.8, Ts.max()*1.2)
 def chi(steps, arr):
     chis = np.zeros(len(steps))
     for i in numba.prange(len(steps)):
-        t_diff = len(arr) - steps[i]
-        term1  = (1/t_diff)*(arr[:t_diff] * arr[steps[i]:]).sum()
-        term2  = (1/t_diff**2) * (arr[:t_diff].sum()*arr[steps[i]:].sum())
-        chis[i]    = term1 - term2
+        t_diff  = len(arr) - steps[i]
+        term1   = (1/t_diff)*(arr[:t_diff] * arr[steps[i]:]).sum()
+        term2   = (1/t_diff**2) * (arr[:t_diff].sum()*arr[steps[i]:].sum())
+        chis[i] = term1 - term2
     return chis
 
 from scipy.optimize import curve_fit
@@ -206,7 +204,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.plot(Ts, mags, ls = ':', marker = '.', c='k')
 ax.set_ylabel('Avg Mags')
-ax.set_ylim(-1.1, 1,1)
+ax.set_ylim(-1.1, 1.1)
 ax2 = ax.twinx()
 ax2.plot(Ts, np.array(taus)/50**2, ls = '-', marker = '.', c='maroon')
 ax2.set_ylabel('Auto-corr time')
@@ -248,15 +246,15 @@ obs3 = np.zeros(len(ms))
 sigma3 = np.zeros(len(ms))
 for i in range(len(ms)): # loops over runs
     m = np.array(ms[i])
-    chunksize = int(16*taus[i])
+    chunk_size = int(16*taus[i])
     chunk_chi_ms = 0
-    total_chuncks = 0
-    prefactor = 1/Ts[i] # * 1/N** ms are already averaged over the grid
-    for j in range(chunksize, len(m), chunksize): # loops over tau chunks
-        chunk_m = m[j-chunksize:j]
+    total_chunks = 0
+    prefactor = N**2/Ts[i] 
+    for j in range(chunk_size, len(m), chunk_size): # loops over tau chunks
+        chunk_m = m[j-chunk_size:j]
         chunk_chi_ms += np.mean(chunk_m**2) - np.mean(chunk_m)**2
-        total_chuncks += 1
-    sigma3[i] = prefactor * chunk_chi_ms / total_chuncks
+        total_chunks += 1
+    sigma3[i] = prefactor * chunk_chi_ms / total_chunks
     obs3[i] = prefactor * (np.mean(m**2) - np.mean(m)**2)
 
 axs[1,0].errorbar(Ts, obs3, yerr = sigma3, 
@@ -269,18 +267,19 @@ obs4 = np.zeros(len(ms))
 sigma4 = np.zeros(len(ms))
 for i in range(len(es)): # loops over runs
     e = np.array(es[i])
-    chunksize = int(16*taus[i])
+    chunk_size = int(16*taus[i])
     chunk_cs = 0
-    total_chuncks = 0
+    total_chunks = 0
     prefactor = 1/Ts[i]**2 * 1/N**2
-    for j in range(chunksize, len(e), chunksize): # loops over tau chunks
-        chunk_c = e[j-chunksize:j]
+    for j in range(chunk_size, len(e), chunk_size): # loops over tau chunks
+        chunk_c = e[j-chunk_size:j]
         chunk_cs += np.mean(chunk_c**2) - np.mean(chunk_c)**2
-        total_chuncks += 1
-    sigma4[i] = prefactor * chunk_cs / total_chuncks
+        total_chunks += 1
+    sigma4[i] = prefactor * chunk_cs / total_chunks
     obs4[i] = prefactor * (np.mean(e**2) - np.mean(e)**2)
 
 axs[1,1].errorbar(Ts, obs4, yerr = sigma4, 
              ls=':', marker='h', c='k', capsize = 4)
 axs[1,1].set_xlabel('Temperature', fontsize = 14)
 axs[1,1].set_ylabel('Specific heat per spin', fontsize = 14)
+# %%
