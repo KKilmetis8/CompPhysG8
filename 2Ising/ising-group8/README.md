@@ -99,10 +99,10 @@ For `kind = 'sweep'`, two `.pdf` files are also generated:
 #### Example Outputs
 
 Example mean spin versus temperature plot. The vertical maroon line indicates the critical temperature $T_\mathrm{c} = \frac{2J}{\ln(1+\sqrt{2})} \approx 2.269185\ J$.
-![energy_err](image/eq_mags.jpg)
+![eq_mags](image/README/eq_mags.jpg)
 
 Example figure showing all the 4 observables for each temperature. Like previously, the vertical maroon line indicates the critical temperature $T_\mathrm{c}$.
-![energy_err](image/main_result.jpg)
+![main_result](image/README/main_result.jpg)
 
 ## Other Files
 
