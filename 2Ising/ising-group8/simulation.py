@@ -21,12 +21,30 @@ if c.kind == 'single':
     avg_mags_after_eq = avg_mags[-c.buffer*p.MC_step:]
     energies_after_eq = energies[-c.buffer*p.MC_step:]
 
-    tau = f.calc_correlation_times([avg_mags_after_eq])[0]
+    tau, tau_err = f.calc_correlation_times([avg_mags_after_eq])
 
-    mean_abs_spin, mean_abs_spins_sigma = f.obs_mean_abs_spin([avg_mags_after_eq], [tau])
-    energy_per_spin, energy_per_spins_sigma = f.obs_energy_per_spin([avg_mags_after_eq], [energies_after_eq], [tau])
-    mag_sus, mag_sus_sigma = f.obs_mag_susceptibility([avg_mags_after_eq], [tau])
-    spec_heat_sus, spec_heat_sus_sigma = f.obs_spec_heat_susceptibility([avg_mags_after_eq], [energies_after_eq], [tau])
+    mean_abs_spin, mean_abs_spins_sigma = f.obs_mean_abs_spin([avg_mags_after_eq], tau)
+    energy_per_spin, energy_per_spins_sigma = f.obs_energy_per_spin([avg_mags_after_eq], [energies_after_eq], tau)
+    mag_sus, mag_sus_sigma = f.obs_mag_susceptibility([avg_mags_after_eq], tau)
+    spec_heat_sus, spec_heat_sus_sigma = f.obs_spec_heat_susceptibility([avg_mags_after_eq], [energies_after_eq], tau)
+
+    observables = [tau, mean_abs_spin, energy_per_spin, mag_sus, spec_heat_sus]
+    sigmas      = [tau_err, mean_abs_spins_sigma, energy_per_spins_sigma, mag_sus_sigma, spec_heat_sus_sigma]
+    
+    obs_rounded    = []
+    sigmas_rounded = []
+    for i, (obs, sigma) in enumerate(zip(observables, sigmas)):
+        j = 0
+        while np.round(sigma, j) == 0:
+            j += 1
+        obs = np.round(obs,j)[0]
+        sigma  = np.round(sigma,j)[0]
+        if j == 0:
+            obs = int(obs)
+            sigma  = int(sigma)
+        obs_rounded.append(obs)
+        sigmas_rounded.append(sigma)
+        
 
     main_result_string = ('# Inputted parameters\n'
     f'temperature = {c.temperature}\n'
@@ -36,14 +54,12 @@ if c.kind == 'single':
     f'J_coupling  = {c.J_coupling}\n'
     f'H_ext       = {c.H_ext}\n'
     '\n'
-    '#Results\n'
-    f'Average magnetization after equilibration: {avg_mags_after_eq.mean()}\n'
-    f'Average energy after equilibration: {energies_after_eq.mean()}\n'
-    f'Auto-correlation time (tau): {tau}\n'
-    f'mean absolute spin: {mean_abs_spin[0]} ± {mean_abs_spins_sigma[0]}\n'
-    f'energy per spin: {energy_per_spin[0]} ± {energy_per_spins_sigma[0]}\n'
-    f'magnetic susceptibility: {mag_sus[0]} ± {mag_sus_sigma[0]}\n'
-    f'specific heat susceptibility: {spec_heat_sus[0]} ± {spec_heat_sus_sigma[0]}')
+    '# Results\n'
+    f'Auto-correlation time (tau): {obs_rounded[0]} ± {sigmas_rounded[0]}\n'
+    f'mean absolute spin: {obs_rounded[1]} ± {sigmas_rounded[1]}\n'
+    f'energy per spin: {obs_rounded[2]} ± {sigmas_rounded[2]}\n'
+    f'magnetic susceptibility: {obs_rounded[3]} ± {sigmas_rounded[3]}\n'
+    f'specific heat susceptibility: {obs_rounded[4]} ± {sigmas_rounded[4]}')
 
     with open(f'sims/{p.simname}/results.txt', 'w') as file: file.write(main_result_string)
 
@@ -70,22 +86,22 @@ if c.kind == 'sweep':
 
     plot.eq_mags(final_mags, convergence)
 
-    taus = f.calc_correlation_times(eq_mags)
+    taus, taus_err = f.calc_correlation_times(eq_mags)
 
     mean_abs_spins, mean_abs_spins_sigmas = f.obs_mean_abs_spin(eq_mags, taus)
     energy_per_spins, energy_per_spins_sigmas = f.obs_energy_per_spin(eq_mags, eq_energies, taus)
     mag_suss, mag_suss_sigmas = f.obs_mag_susceptibility(eq_mags, taus)
     spec_heat_suss, spec_heat_suss_sigmas = f.obs_spec_heat_susceptibility(eq_mags, eq_energies, taus)
 
-    observables = [mean_abs_spins, energy_per_spins, mag_suss, spec_heat_suss]
-    sigmas      = [mean_abs_spins_sigmas, energy_per_spins_sigmas, mag_suss_sigmas, spec_heat_suss_sigmas]
+    observables = [taus, mean_abs_spins, energy_per_spins, mag_suss, spec_heat_suss]
+    sigmas      = [taus_err, mean_abs_spins_sigmas, energy_per_spins_sigmas, mag_suss_sigmas, spec_heat_suss_sigmas]
 
     table_for_saving = np.zeros((len(mean_abs_spins), 2*len(observables)))
     for i, (obs, sigma) in enumerate(zip(observables, sigmas)):
         table_for_saving[:,2*i:2*(i+1)] = np.reshape([obs, sigma], (2,len(obs))).T
 
     np.savetxt(f'sims/{p.simname}/Observables.csv', table_for_saving, delimiter=',', 
-                header=('Mean absolute spin, energy per spin, magnetic susceptibility,'
+                header=('Autocorrelation time, Mean absolute spin, energy per spin, magnetic susceptibility,'
                         'specific heat susceptibility, and their standard deviations per temperature.'))
 
     plot.main_result(observables, sigmas)

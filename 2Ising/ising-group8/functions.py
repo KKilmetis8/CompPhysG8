@@ -213,6 +213,7 @@ def calc_correlation_times(eq_mags: list[np.ndarray[float]]) -> list[float]:
         Autocorrelation times corresponding to the data in each array of eq_mags.
     """    
     taus = []
+    tau_errs = []
     for ms in tqdm(eq_mags, desc='Correlation Times') if c.loud else eq_mags:
         ts = np.arange(len(ms))
         chis = chi(ts, ms)
@@ -223,10 +224,11 @@ def calc_correlation_times(eq_mags: list[np.ndarray[float]]) -> list[float]:
         else:
             up_to = -1
 
-        popt, _ = curve_fit(exp_model,ts[:up_to], chis[:up_to])
+        popt, pcov = curve_fit(exp_model,ts[:up_to], chis[:up_to])
         tau = popt[-1]
         taus.append(tau)
-    return taus
+        tau_errs.append(np.sqrt(pcov[-1,-1]))
+    return taus, tau_errs
 
 def obs_mean_abs_spin(eq_mags: list[np.ndarray[float]], taus: np.ndarray[float]) \
     -> tuple[np.ndarray[float], np.ndarray[float]]:
