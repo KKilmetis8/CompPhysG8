@@ -6,7 +6,6 @@ Created on Fri Mar 22 15:50:01 2024
 # Pistachio imports
 import numpy as np
 import config as c
-from os import makedirs
 import time
 
 # Derived
@@ -30,7 +29,6 @@ simname = c.simname
 if simname is None:
     time_of_creation = time.strftime('%d-%h-%H:%M:%S', time.localtime())
     simname = f'{c.init_grid}_{c.kind}_at_{time_of_creation}'
-makedirs(f"sims/{simname}/", exist_ok=True)
 
 # Plotting 
 cmap = "coolwarm" # coolwarm, PuOr, PiYG

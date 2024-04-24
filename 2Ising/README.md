@@ -48,7 +48,7 @@ Running the simulation is fairly straightforward. After having set the parameter
 python3 'simulation.py'
 ```
 
-If `loud = True`, progressbars from the `tqdm` package will appear in the terminal at time-intensive steps of the simulation; namely when running the Metropolis-Hastings algorithm and when calculating the autocorrelation time(s) ($\tau$). These will especially be visible when running for multiple temperatures (`kind = 'sweep'`).
+If `loud = True`, progressbars from the `tqdm` package will appear in the terminal at time-intensive steps of the simulation; namely when running the Metropolis-Hastings algorithm, when calculating the autocorrelation time(s) ($\tau$), and when running the Metropolis-Hastings algorithm for $160\tau$ steps to get good measurements for the observables. These will especially be visible when running for multiple temperatures (`kind = 'sweep'`).
 
 ### Outputs
 
@@ -73,11 +73,11 @@ J_coupling  = 1
 H_ext       = 0
 
 # Results
-Auto-correlation time (tau): 4328 ± 12
-mean absolute spin: 0.06 ± 0.02
-energy per spin: -0.83 ± 0.02
-magnetic susceptibility: 1.9 ± 1.4
-specific heat susceptibility: 0.5 ± 0.4
+Auto-correlation time (tau): 5793 ± 10
+mean absolute spin: 0.02 ± 0.01
+energy per spin: -0.81 ± 0.01
+magnetic susceptibility: 3 ± 1
+specific heat susceptibility: 0.4 ± 0.1
 ```
 
 Where the entries below `# Inputted parameters` correspond to the values given in `config.py` and the entries below `# Results` correspond to the calculated autocorrelation time $\tau$, mean absolute spin $\langle | m|\rangle$, energy per spin $e$, magnetic susceptibility $\chi_M$, and specific heat susceptibility $C$, along with their estimated standard deviations.
@@ -98,10 +98,10 @@ For `kind = 'sweep'`, two `.pdf` files are also generated:
 
 #### Example Outputs
 
-Example mean spin versus temperature plot.
+Example mean spin versus temperature plot. The vertical maroon line indicates the critical temperature $T_\mathrm{c} = \frac{2J}{\ln(1+\sqrt{2})} \approx 2.269185\ J$.
 ![energy_err](image/eq_mags.jpg)
 
-Example figure showing all the 4 observables for each temperature.
+Example figure showing all the 4 observables for each temperature. Like previously, the vertical maroon line indicates the critical temperature $T_\mathrm{c}$.
 ![energy_err](image/main_result.jpg)
 
 ## Other Files

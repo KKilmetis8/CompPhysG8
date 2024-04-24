@@ -38,8 +38,8 @@ def Hamiltonian(grid: np.ndarray, J: float = c.J_coupling, H: float = c.H_ext) -
 @numba.njit(nopython=True, nogil=True)
 def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_energy: float, 
                J: float = c.J_coupling, H: float = c.H_ext, rtol: float=1e-3, atol: float=1e-4,
-               chunk_size: int = 20, buffer: int=20) \
-               -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[bool]]:
+               chunk_size: int = 20, buffer: int = 20, equilibrate: bool = True) \
+               -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float], bool]:
     '''
     Performs the Metropolis algorithm.
 
@@ -74,6 +74,8 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
     buffer: int, how many MC_steps to continue running after the equilibration is done.
             Useful for measuring observables.
 
+    equilibrate: bool, wether to check if the system is equilibrated or not.
+
     Returns
     -------
     all_energies[:i]: array of floats, the energy at each simulation step,
@@ -81,6 +83,8 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
     
     all_avg_mags[:i]: array of floats, the average spin magnitude at each simulation step,
                       up to the point of equilibration.
+    
+    last_grid: array of floats, the final grid generated in algorithm.
     
     converged: bool, wether the simulation equilibrated or not.
     '''
@@ -100,24 +104,25 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
     converged = False
     for i in range(steps):
         # Equilibration Check ----------------------------------------------->
-        if i > i_eq + buffer*MC_step:
-            # If equilibrated: run for 'buffer' extra MC-steps
-            break
-        
-        if i > (2*trial) and np.mod(i,2*trial)==0:
-            old_energy = np.abs(np.mean(all_energies[i-2*trial:i - trial]))
-            new_energy = np.abs(np.mean(all_energies[i-trial:i]))
-            abs_diff = np.abs(old_energy - new_energy)
-            rel_diff = abs_diff/old_energy
-
-            #print(rel_diff, rtol, abs_diff, atol)
+        if equilibrate:
+            if i > i_eq + buffer*MC_step:
+                # If equilibrated: run for 'buffer' extra MC-steps
+                break
             
-            if not converged and (rel_diff < rtol or abs_diff < atol):
-                converged = True
-                i_eq = i
-                # if rel_diff < rtol: print('rel-eq:', rel_diff, rtol)
-                # if abs_diff < atol: print('abs-eq:', abs_diff, atol)
+            if i > (2*trial) and np.mod(i,2*trial)==0:
+                old_energy = np.abs(np.mean(all_energies[i-2*trial:i - trial]))
+                new_energy = np.abs(np.mean(all_energies[i-trial:i]))
+                abs_diff = np.abs(old_energy - new_energy)
+                rel_diff = abs_diff/old_energy
+
+                #print(rel_diff, rtol, abs_diff, atol)
                 
+                if not converged and (rel_diff < rtol or abs_diff < atol):
+                    converged = True
+                    i_eq = i
+                    # if rel_diff < rtol: print('rel-eq:', rel_diff, rtol)
+                    # if abs_diff < atol: print('abs-eq:', abs_diff, atol)
+                    
             
         # Generate single-flip grid ------------------------------------------>
         flip_row = np.random.randint(0,Nsize)
@@ -148,7 +153,7 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
         all_energies[i+1] = all_energies[i]
         all_avg_mags[i+1] = last_grid.mean()
 
-    return all_energies[:i], all_avg_mags[:i], converged
+    return all_energies[:i], all_avg_mags[:i], last_grid, converged
 
 
 @numba.njit(parallel=True)
@@ -214,7 +219,7 @@ def calc_correlation_times(eq_mags: list[np.ndarray[float]]) -> list[float]:
     """    
     taus = []
     tau_errs = []
-    for ms in tqdm(eq_mags, desc='Correlation Times') if c.loud else eq_mags:
+    for ms in tqdm(eq_mags, desc='Correlation times') if c.loud else eq_mags:
         ts = np.arange(len(ms))
         chis = chi(ts, ms)
         up_to = np.where(chis <= 1e-7)[0]
@@ -286,6 +291,7 @@ def obs_energy_per_spin(eq_mags: list[np.ndarray[float]], eq_energies: list[np.n
         energy_per_spins[i] = mean_e.mean()
         var = np.abs( np.mean(mean_e**2) - np.mean(mean_e)**2)
         sigmas[i] = np.sqrt(2*taus[i]/len(mean_e) * var)
+    
     return energy_per_spins, sigmas
 
 def obs_mag_susceptibility(eq_mags: list[np.ndarray[float]], taus: np.ndarray[float]) \
@@ -311,8 +317,7 @@ def obs_mag_susceptibility(eq_mags: list[np.ndarray[float]], taus: np.ndarray[fl
     sigmas = np.zeros(len(eq_mags))
     for i, m in enumerate(eq_mags): # loops over runs
         chunk_size = int(16*taus[i])
-        chunk_chi_ms = 0
-        total_chunks = 0
+        chunk_chi_ms = []
 
         if c.kind == 'sweep':
             temp = c.temperatures[i]
@@ -322,10 +327,10 @@ def obs_mag_susceptibility(eq_mags: list[np.ndarray[float]], taus: np.ndarray[fl
         prefactor = c.Nsize**2/temp
         for j in range(chunk_size, len(m), chunk_size): # loops over tau chunks
             chunk_m = m[j-chunk_size:j]
-            chunk_chi_ms += np.mean(chunk_m**2) - np.mean(chunk_m)**2
-            total_chunks += 1
-        sigmas[i] = prefactor * chunk_chi_ms / total_chunks
-        mag_suss[i] = prefactor * (np.mean(m**2) - np.mean(m)**2)
+            chunk_chi_ms.append(prefactor*(np.mean(chunk_m**2) - np.mean(chunk_m)**2))
+        
+        sigmas[i] = np.std(chunk_chi_ms)
+        mag_suss[i] = np.mean(chunk_chi_ms)
     return mag_suss, sigmas
 
 def obs_spec_heat_susceptibility(eq_mags: list[np.ndarray[float]], eq_energies: list[np.ndarray[float]], taus: np.ndarray[float]) \
@@ -354,8 +359,7 @@ def obs_spec_heat_susceptibility(eq_mags: list[np.ndarray[float]], eq_energies: 
 
     for i, energies in enumerate(eq_energies): # loops over runs
         chunk_size = int(16*taus[i])
-        chunk_cs = 0
-        total_chunks = 0
+        chunk_cs = []
 
         if c.kind == 'sweep':
             temp = c.temperatures[i]
@@ -365,9 +369,9 @@ def obs_spec_heat_susceptibility(eq_mags: list[np.ndarray[float]], eq_energies: 
         prefactor = 1/temp**2 * 1/c.Nsize**2
         for j in range(chunk_size, len(energies), chunk_size): # loops over tau chunks
             chunk_c = energies[j-chunk_size:j]
-            chunk_cs += np.mean(chunk_c**2) - np.mean(chunk_c)**2
-            total_chunks += 1
-        sigmas[i] = prefactor * chunk_cs / total_chunks
-        spec_heat_suss[i] = prefactor * (np.mean(energies**2) - np.mean(energies)**2)
+            chunk_cs.append(prefactor*(np.mean(chunk_c**2) - np.mean(chunk_c)**2))
+        
+        sigmas[i] = np.std(chunk_cs)
+        spec_heat_suss[i] = np.mean(chunk_cs)
     
     return spec_heat_suss, sigmas

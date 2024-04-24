@@ -21,9 +21,8 @@ def eq_mags(final_mags: list[int], convergence: list[bool]):
             c = colors, marker = 'h', s = 100, zorder=3)
     plt.axhline(0, c = 'maroon', ls ='--', zorder=2)
     plt.axvline(p.critical_temp, c = 'maroon', ls ='--', zorder=2)
-    plt.xlabel('T', fontsize = 14)
-    plt.ylabel('Avg mag', fontsize = 14)
-    plt.title(f'2D Ising model for N:{c.Nsize}', fontsize = 15)
+    plt.xlabel('Temperature', fontsize = 14)
+    plt.ylabel('Mean spin', fontsize = 14)
     plt.ylim(-1.2,1.2)
     plt.xlim(c.temperatures.min()*0.8, c.temperatures.max()*1.2)
     plt.savefig(f'sims/{p.simname}/eq_mags.pdf', format = 'pdf')
@@ -54,6 +53,7 @@ def main_result(observables: list[np.ndarray[float]], sigmas: list[np.ndarray[fl
         ax = axs.flatten()[i]
 
         ax.errorbar(c.temperatures, obs, yerr = sigma, ls=':', marker='h', c='k', capsize = 4)
+        ax.axvline(p.critical_temp, c = 'maroon', ls ='--', zorder=2)
         ax.set_xlabel('Temperature', fontsize = 14)
         ax.set_ylabel(ylabels[i], fontsize = 14)
 
