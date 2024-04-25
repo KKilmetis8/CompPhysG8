@@ -29,16 +29,17 @@ if c.kind == 'single':
     measured_energies, measured_mags, _, _ = f.metropolis(last_grid, steps, c.temperature, energies[-1],
                                                       c.J_coupling, c.H_ext, equilibrate = False)
 
-    mean_abs_spin, mean_abs_spins_sigma = f.obs_mean_abs_spin([measured_mags], tau)
-    energy_per_spin, energy_per_spins_sigma = f.obs_energy_per_spin([measured_mags], [measured_energies], tau)
-    mag_sus, mag_sus_sigma = f.obs_mag_susceptibility([measured_mags], tau)
-    spec_heat_sus, spec_heat_sus_sigma = f.obs_spec_heat_susceptibility([measured_mags], [measured_energies], tau)
+    mean_abs_spin  , mean_abs_spins_sigma   = f.obs_mean_abs_spin(           [measured_mags],                      tau)
+    energy_per_spin, energy_per_spins_sigma = f.obs_energy_per_spin(         [measured_mags], [measured_energies], tau)
+    mag_sus        , mag_sus_sigma          = f.obs_mag_susceptibility(      [measured_mags],                      tau)
+    spec_heat_sus  , spec_heat_sus_sigma    = f.obs_spec_heat_susceptibility([measured_mags], [measured_energies], tau)
 
-    observables = [tau, mean_abs_spin, energy_per_spin, mag_sus, spec_heat_sus]
+    observables = [tau    , mean_abs_spin       , energy_per_spin       , mag_sus      , spec_heat_sus      ]
     sigmas      = [tau_err, mean_abs_spins_sigma, energy_per_spins_sigma, mag_sus_sigma, spec_heat_sus_sigma]
     
     obs_rounded    = []
     sigmas_rounded = []
+    # Rounding mean and standard deviation appropriately
     for i, (obs, sigma) in enumerate(zip(observables, sigmas)):
         j = 0
         while np.round(sigma, j) == 0:
@@ -72,7 +73,7 @@ if c.kind == 'single':
 
     with open(f'sims/{p.simname}/results.txt', 'w') as file: file.write(main_result_string)
 
-if c.kind == 'sweep':
+elif c.kind == 'sweep':
     final_mags  = []
     convergence = []
     eq_mags     = []
@@ -109,12 +110,12 @@ if c.kind == 'sweep':
         measured_mags.append(avg_mags)
         measured_energies.append(energies)
 
-    mean_abs_spins, mean_abs_spins_sigmas = f.obs_mean_abs_spin(measured_mags, taus)
-    energy_per_spins, energy_per_spins_sigmas = f.obs_energy_per_spin(measured_mags, measured_energies, taus)
-    mag_suss, mag_suss_sigmas = f.obs_mag_susceptibility(measured_mags, taus)
-    spec_heat_suss, spec_heat_suss_sigmas = f.obs_spec_heat_susceptibility(measured_mags, measured_energies, taus)
+    mean_abs_spins,   mean_abs_spins_sigmas   = f.obs_mean_abs_spin(           measured_mags,                    taus)
+    energy_per_spins, energy_per_spins_sigmas = f.obs_energy_per_spin(         measured_mags, measured_energies, taus)
+    mag_suss,         mag_suss_sigmas         = f.obs_mag_susceptibility(      measured_mags,                    taus)
+    spec_heat_suss,   spec_heat_suss_sigmas   = f.obs_spec_heat_susceptibility(measured_mags, measured_energies, taus)
 
-    observables = [taus, mean_abs_spins, energy_per_spins, mag_suss, spec_heat_suss]
+    observables = [taus    , mean_abs_spins       , energy_per_spins       , mag_suss       , spec_heat_suss       ]
     sigmas      = [taus_err, mean_abs_spins_sigmas, energy_per_spins_sigmas, mag_suss_sigmas, spec_heat_suss_sigmas]
 
     table_for_saving = np.zeros((len(mean_abs_spins), 2*len(observables)))
@@ -126,3 +127,6 @@ if c.kind == 'sweep':
                         'specific heat susceptibility, and their standard deviations per temperature.'))
 
     plot.main_result(observables[1:], sigmas[1:])
+
+else:
+    raise ValueError(f"Unrecognized option '{c.kind}' for the variable 'kind'")

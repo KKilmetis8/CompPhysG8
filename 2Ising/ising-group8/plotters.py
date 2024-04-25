@@ -10,7 +10,7 @@ def eq_mags(final_mags: list[int], convergence: list[bool]):
     Parameters
     ----------
     final_mags: list of integers, the equilibrated magnitudes of the simulated
-                grids over the temperatures given in `prelude.py`
+                grids over the temperatures given in `config.py`
 
     convergence: list of bools, wether the simulations converged or not,
                  determines the color of the datapoints.
@@ -18,13 +18,13 @@ def eq_mags(final_mags: list[int], convergence: list[bool]):
 
     colors = ["k" if converged else "r" for converged in convergence]
     plt.scatter(c.temperatures, final_mags, 
-            c = colors, marker = 'h', s = 100, zorder=3)
+                c = colors, marker = 'h', s = 100, zorder=3)
     plt.axhline(0, c = 'maroon', ls ='--', zorder=2)
     plt.axvline(p.critical_temp, c = 'maroon', ls ='--', zorder=2)
     plt.xlabel('Temperature', fontsize = 14)
     plt.ylabel('Mean spin', fontsize = 14)
-    plt.ylim(-1.2,1.2)
-    plt.xlim(c.temperatures.min()*0.8, c.temperatures.max()*1.2)
+    plt.ylim(-1.2, 1.2)
+    plt.xlim(np.min(c.temperatures)*0.8, np.max(c.temperatures)*1.2)
     plt.savefig(f'sims/{p.simname}/eq_mags.pdf', format = 'pdf')
     plt.close()
 
@@ -40,6 +40,7 @@ def main_result(observables: list[np.ndarray[float]], sigmas: list[np.ndarray[fl
     observables : list[np.ndarray[float]]
         list of arrays of equal length with the values for the observables, in the order 
         mean absolute spin, energy per spin, magnetic susceptibility, specific heat susceptibility.
+
     sigmas : list[np.ndarray[float]]
         list of arrays of equal length with the standard deviations on the observables, in the order 
         mean absolute spin, energy per spin, magnetic susceptibility, specific heat susceptibility.

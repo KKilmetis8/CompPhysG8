@@ -38,7 +38,7 @@ def Hamiltonian(grid: np.ndarray, J: float = c.J_coupling, H: float = c.H_ext) -
 @numba.njit(nopython=True, nogil=True)
 def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_energy: float, 
                J: float = c.J_coupling, H: float = c.H_ext, rtol: float=1e-3, atol: float=1e-4,
-               chunk_size: int = 20, buffer: int = 20, equilibrate: bool = True) \
+               chunk_size: int = 20, buffer: int = 100, equilibrate: bool = True) \
                -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float], bool]:
     '''
     Performs the Metropolis algorithm.
@@ -61,37 +61,43 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
                  calculated using the `Hamiltonian` function.
     
     J: float, the coupling constant. Defaulted to the one given in `config.py`
+       Default: config.J_coupling
 
     H: float, the external magnetic field. Defaulted to the one given in `config.py`
-
+       Default: config.H_ext
+    
     rtol: float, the accepted relative tolerance used in the equilibration condition.
+          Default: 1e-3
 
     atol: float, the accepted absolute tolerance used in the equilibration condition.
-
+          Default: 1e-4
+    
     chunk_size: int, the window size in MC_steps between which energies are compared
                 for the equilibration.
+                Default: 20
 
     buffer: int, how many MC_steps to continue running after the equilibration is done.
-            Useful for measuring observables.
-
-    equilibrate: bool, wether to check if the system is equilibrated or not.
+            Useful for determining the autocorrelation time.
+            Default: 100
+            
+    equilibrate: bool, wether to check if the system is equilibrated or not. 
+                 Usually set to True, only really set to False for measuring observables.
+                 Default: True
 
     Returns
     -------
-    all_energies[:i]: array of floats, the energy at each simulation step,
-                      up to the point of equilibration.
+    all_energies[:i_eq]: array of floats, the energy at each simulation step,
+                         up to the point of equilibration.
     
-    all_avg_mags[:i]: array of floats, the average spin magnitude at each simulation step,
-                      up to the point of equilibration.
+    all_avg_mags[:i_eq]: array of floats, the average spin magnitude at each simulation step,
+                         up to the point of equilibration.
     
     last_grid: array of floats, the final grid generated in algorithm.
     
     converged: bool, wether the simulation equilibrated or not.
     '''
     beta = 1/temperature
-    Nsize = len(init_grid)
-    MC_step = Nsize**2
-    trial = chunk_size*MC_step
+    trial = chunk_size*p.MC_step
     
     # Initialize holders
     all_energies = np.zeros(steps+1)
@@ -105,7 +111,7 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
     for i in range(steps):
         # Equilibration Check ----------------------------------------------->
         if equilibrate:
-            if i > i_eq + buffer*MC_step:
+            if i > i_eq + buffer*p.MC_step:
                 # If equilibrated: run for 'buffer' extra MC-steps
                 break
             
@@ -125,8 +131,8 @@ def metropolis(init_grid: np.ndarray[int], steps: int, temperature: float, init_
                     
             
         # Generate single-flip grid ------------------------------------------>
-        flip_row = np.random.randint(0,Nsize)
-        flip_col = np.random.randint(0,Nsize)
+        flip_row = np.random.randint(0,c.Nsize)
+        flip_col = np.random.randint(0,c.Nsize)
         new_grid = last_grid.copy()
         new_grid[flip_row,flip_col] *= -1
         
