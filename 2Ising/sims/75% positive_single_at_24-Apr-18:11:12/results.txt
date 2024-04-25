@@ -1,0 +1,14 @@
+# Inputted parameters
+temperature = 3
+Nsize       = 30
+MC_steps    = 10000
+buffer      = 100
+J_coupling  = 1
+H_ext       = 0
+
+# Results
+Auto-correlation time (tau): 9316 ± 25
+mean absolute spin: 0.01 ± 0.01
+energy per spin: -0.82 ± 0.01
+magnetic susceptibility: 4 ± 1
+specific heat susceptibility: 0.36 ± 0.04
