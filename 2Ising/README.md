@@ -89,7 +89,7 @@ Due to simulations being run for multiple temperatures when `kind = 'sweep'`, mo
 * `energies_after_eq.csv`: Contains a `(buffer*Nsize**2) x len(temperatures)`-sized array, with each column corresponding to a temperature showing the energy after equilibration for each simulation step.
 * `final_mags_and_temps.csv`: Contains a `len(temperatures) x 3`-sized array, with the first column corresponding to `temperatures`, the second to the final mean spin $m$, and the third gives in the simulation equilibrated or not, with 1 corresponding to it having equilibrated, and 0 to not.
 * `mean_spins_after_eq.csv`: Contains a `(buffer*Nsize**2) x len(temperatures)`-sized array, with each column corresponding to a temperature showing the mean spin after equilibration for each simulation step.
-* `Observables.csv`: Contains a `len(temperatures) x 10`-sized array, with each set of two columns corresponding to an observable and its standard deviation for each simulated temperature. The first two columns correspond to the autocorrelation time $\tau$ and its standard devation.
+* `Observables.csv`: Contains a `len(temperatures) x 10`-sized array, with each set of two columns corresponding to an observable and its standard deviation for each simulated temperature. The first two columns correspond to the autocorrelation time $\tau$ and its standard deviation.
 
 For `kind = 'sweep'`, two `.pdf` files are also generated:
 

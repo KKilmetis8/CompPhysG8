@@ -1,3 +1,9 @@
+"""
+Created on Tue Apr 23 17:27:36 2024
+
+@authors: diederick & konstantinos
+"""
+
 import numpy as np
 from scipy.signal import convolve2d
 from scipy.optimize import curve_fit

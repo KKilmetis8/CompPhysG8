@@ -1,3 +1,9 @@
+"""
+Created on Tue Apr 23 17:55:18 2024
+
+@authors: diederick & konstantinos
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import config as c

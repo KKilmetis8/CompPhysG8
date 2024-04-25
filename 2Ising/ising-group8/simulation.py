@@ -1,3 +1,9 @@
+"""
+Created on Tue Apr 23 17:34:11 2024
+
+@authors: diederick & konstantinos
+"""
+
 from tqdm import tqdm
 from importlib import reload
 import numpy as np

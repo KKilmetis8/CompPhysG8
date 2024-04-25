@@ -1,7 +1,7 @@
 """
-Created on Thu Apr 25 12:30:41 2024
+Created on Tue Apr 23 17:18:32 2024
 
-@author: diederick, konstantinos
+@authors: diederic & konstantinos
 
 Ising Model Simulation Config.  
 This is the only file any user should touch.
@@ -59,12 +59,13 @@ Specifies parameters of simulation.
         the 'temperatures' variable.
         Default: 'sweep'
 
-    init_grid, str: String, either '75% positive' or 'random',
+    init_grid, str: String, '75% positive', '75% negative', 'random',
         determines which kind of initial grid to use. 
         If set to '75% positive' will generate a Nsize-by-Nsize 
         grid of ones, where randomly 25% of the spins are changed
-        to -1. If set to 'random', will generate a Nsize-by-Nsize
-        grid where each spin has a 50/50 chance of being 1 or -1.
+        to -1. Equivalently for '75% negative'. If set to 'random',
+        will generate a Nsize-by-Nsize grid where each spin has a 
+        50/50 chance of being 1 or -1.
         Note: If running a sweep-simulation, each simulation will
         use the same initial grid.
         Default: '75% positive'
@@ -82,7 +83,7 @@ Specifies parameters of simulation.
 """
 
 temperature = 3
-Nsize       = 30
+Nsize       = 50
 MC_steps    = 10_000
 buffer      = 100
 
@@ -93,8 +94,8 @@ rngseed = None
 loud    = True
 
 kind      = 'sweep'
-init_grid = '75% positive'
+init_grid = '75% negative'
 simname   = None
 
 from numpy import arange
-temperatures = arange(1,4+0.2, 0.2)
+temperatures = arange(1,4+0.1, 0.1)

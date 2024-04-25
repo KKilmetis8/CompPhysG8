@@ -3,6 +3,7 @@ Created on Fri Mar 22 15:50:01 2024
 
 @authors: diederick & konstantinos
 """
+
 # Pistachio imports
 import numpy as np
 import config as c
@@ -18,6 +19,10 @@ if c.init_grid == '75% positive':
     flip = rng.integers(c.Nsize, size = (2, c.Nsize**2//4))
     init_grid = np.ones((c.Nsize, c.Nsize))
     init_grid[flip[0], flip[1]] = -1
+elif c.init_grid == '75% negative':
+    flip = rng.integers(c.Nsize, size = (2, c.Nsize**2//4))
+    init_grid = -np.ones((c.Nsize, c.Nsize))
+    init_grid[flip[0], flip[1]] = 1
 elif c.init_grid == 'random':
     init_grid = np.sign(rng.random((c.Nsize, c.Nsize)) - 0.5)
 else:
