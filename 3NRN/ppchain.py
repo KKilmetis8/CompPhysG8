@@ -38,6 +38,16 @@ def inv_Jacobian(Ys, rates, old, h):
     reac_4 = [0,0,0,-2*rates[2]*Ys[3] + h]
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
 
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-25):
+    
+    for nr_step in range(maxsteps):
+        newY = oldY - np.dot(invJ(args), fsol(args))
+        diff = np.linalg.norm(oldY-newY)
+        if diff<tol:
+            break
+        oldY = newY
+    return newY
+ 
 
 Hyd = 0.7
 DtoH = 1.5e-5 # Black 79 
