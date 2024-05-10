@@ -22,6 +22,22 @@ def eq(Y, rates, old, h):
     res += h * (Y - old)
     return res
 
+def inv_Jacobian(Ys, rates, old, h):
+    reac_1 = [4*rates[0]*Ys[0]+rates[1]*Ys[1],
+             rates[1]*Ys[0],
+             -4*rates[2]*Ys[2],
+             0]
+    reac_2 = [-2*rates[0]*Ys[0]+rates[1]*Ys[1],
+             rates[1]*Ys[0],
+             0,
+             0]
+    reac_3 = [-rates[1]*Ys[1],
+             -rates[1]*Ys[0],
+             4*rates[2]*Ys[2] + h,
+             0]
+    reac_4 = [0,0,0,-2*rates[2]*Ys[3] + h]
+    return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
+
 
 Hyd = 0.7
 DtoH = 1.5e-5 # Black 79 
@@ -37,14 +53,14 @@ He3 = Hyd * He3toH
 He = 0.28
 
 h = 1e-17
-timesteps = 1000
+timesteps = 10000
 Ys = np.zeros((timesteps, 4))
 Ys[0] = [Hyd, Deut, He3, He]
 #Ys[0] = [1, 0, 0, 0]
 rates = np.array([1.25e-19,	1.9e-2, 1e-9])
 
 for i in tqdm(range(1,timesteps)):
-    Ys[i] = root(eq, Ys[i-1], args = (rates, Ys[i-1], h), method='lm').x
+    Ys[i] = root(eq, Ys[i-1], args = (rates, Ys[i-1], h), method='lm', jac=inv_Jacobian).x
     #print(f"({np.round((i+1)/len(Ys))}%): {Ys[i]}",end='\r')
     
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
