@@ -10,39 +10,55 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import root
 import numba
+from tqdm import tqdm
 
 @numba.njit
-def eq(x, rates, old, h):
+def eq(Y, rates, old, h):
     res = np.zeros(4)
-    res[0] = rates[0] * 2 * x[0]**2 + rates[1] * x[0] * x[1]
-    res[1] = - rates[0]  * x[0]**2 + rates[1] * x[0] * x[1]
-    res[2] = -rates[1] * x[0] * x[1] + rates[2] *2* x[2]**2
-    res[3] = -rates[2] * x[2]**2
-    res += h * (x - old)
+    res[0] = rates[0] * 2 * Y[0]**2 + rates[1] * Y[0] * Y[1] - 2 * rates[2] * Y[2]**2
+    res[1] = - rates[0]  * Y[0]**2 + rates[1] * Y[0] * Y[1]
+    res[2] = - rates[1] * Y[0] * Y[1] + rates[2] *2* Y[2]**2
+    res[3] = - rates[2] * Y[2]**2
+    res += h * (Y - old)
     return res
 
 
 Hyd = 0.7
-DtoH = 1.5e-5 # Black 79
+DtoH = 1.5e-5 # Black 79 
 Deut = Hyd * DtoH
-He3 = 1e-6
+He3 = 1e-20
 He = 0.28
-h = 0.01
-timesteps = 100_000
+
+Hyd = 0.7
+DtoH = 2.1e-5 # Geiss Gloeckler 98
+Deut = Hyd * DtoH
+He3toH = 1.5e-5 # Geiss Gloeckler 98
+He3 = Hyd * He3toH
+He = 0.28
+
+h = 1e-17
+timesteps = 1000
 Ys = np.zeros((timesteps, 4))
 Ys[0] = [Hyd, Deut, He3, He]
-rates = np.array([1e-6, 1e-2, 2e-2, 1e-2])
+#Ys[0] = [1, 0, 0, 0]
+rates = np.array([1.25e-19,	1.9e-2, 1e-9])
 
-for i in range(1,timesteps):
-    Ys[i] = root(eq, Ys[i-1], args = (rates, Ys[i-1], h)).x
+for i in tqdm(range(1,timesteps)):
+    Ys[i] = root(eq, Ys[i-1], args = (rates, Ys[i-1], h), method='lm').x
+    #print(f"({np.round((i+1)/len(Ys))}%): {Ys[i]}",end='\r')
     
-    
-plt.plot(np.arange(timesteps), Ys.T[0], c = 'k', label = 'H')
-plt.plot(np.arange(timesteps), Ys.T[1], c = 'tab:red', ls = '--', label = 'D')
-plt.plot(np.arange(timesteps), Ys.T[2], c = 'b', label = '3He')
-plt.plot(np.arange(timesteps), Ys.T[3], c = 'darkorange', ls = '--', label = 'He')
+labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
+colors = ["k", "tab:red", "b", "green"]
+linestyles = ["-","-","-","--"]
+plt.figure(tight_layout=True)
+for i,abundances in enumerate(Ys.T):
+    plt.plot(np.arange(timesteps), abundances, label = labels[i], ls=linestyles[i], color=colors[i], marker='')
+
+#plt.plot(np.arange(timesteps), Ys.sum(axis=1), 'k--')
+
+plt.grid()
 plt.yscale('log')
 plt.ylabel('Abundance', fontsize = 14)
 plt.xlabel('time', fontsize = 14)
 #plt.ylim(1e-1,1)
-plt.legend(ncols = 4)
+plt.legend(ncols = 1, loc='upper left', bbox_to_anchor = (1,1))
