@@ -45,19 +45,21 @@ def inv_Jacobian(Ys, rates, h):
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
 
 #@numba.njit
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10, minsteps = 1):
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 3, tol=1e-10, minsteps = 1):
     As = np.array([1,2,3,4])
     prevY = oldY.copy()
     for nr_step in range(maxsteps):
         newY = oldY - np.dot(invJ(oldY, *args), fsol(oldY, prevY, *args))
         #print(oldY[1], newY[1])
         
-        crit = np.abs(1 - np.sum(newY*As))
+        #crit = np.abs(1 - np.sum(newY*As))
         # print(nr_step, crit)
         # print('---')
-        if crit < tol:
-            print('hi')
-            break
+        if newY[1]<1e-10:
+            newY[1]=1e-6
+        # if crit < tol:
+        #     print('hi')
+        #     break
         oldY = newY
     
     #print(fsol(newY, *args))
@@ -75,16 +77,16 @@ He3 = Hyd * He3toH
 He = 0.28
 
 year = 365*24*60*60 # [s]
-h = 1/(year) # 1/dT, 
-timesteps = int(1_000_000)
+h = 1/(1e3*year) # 1/dT, 
+timesteps = int(10e6)
 Ys = np.zeros((timesteps, 4))
 sols = np.zeros((timesteps, 4))
 As = np.array([1,2,3,4])
 Ys[0] = [Hyd, Deut, He3, He]
 # Ys[0] /= np.sum(Ys[0] * As)
 rates = np.array([7.9e-20,	1.01e-2, 2.22e-10])
-rates /= rates[0]
-rates = np.array([1e-8, 1e-2, 5e-6])
+#rates /= rates[0]
+#rates = np.array([1e-8, 1e-2, 5e-6])
 
 #print( np.sum(Ys[0]))
 
@@ -94,13 +96,15 @@ for i in tqdm(range(1,timesteps)):
     #print( np.sum(Ys[i])) # * As))
     # Ys[i] /= np.sum(Ys[i] * As)
     #print(f"({np.round((i+1)/len(Ys))}%): {Ys[i]}",end='\r')
-    
+#%%
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
 colors = ["k", "tab:red", "b", "green"]
 linestyles = ["-","-","-","--"]
 plt.figure(tight_layout=True)
+
+step = 1000
 for i,abundances in enumerate(Ys.T):
-    plt.plot(np.arange(timesteps), abundances, label = labels[i], ls=linestyles[i], color=colors[i], marker='')
+    plt.plot(np.arange(timesteps)[::step]*1e-3, abundances[::step], label = labels[i], ls=linestyles[i], color=colors[i], marker='')
 
 #plt.plot(np.arange(timesteps), Ys.sum(axis=1), 'k--')
 
@@ -108,10 +112,10 @@ plt.grid()
 plt.yscale('log')
 plt.xscale('log')
 plt.ylabel('Abundance', fontsize = 14)
-plt.xlabel('time', fontsize = 14)
-#plt.ylim(1e-1,1)
+plt.xlabel('time [Myr]', fontsize = 14)
+plt.xlim(0.3e2,10e3)
 plt.legend(ncols = 1, loc='upper left', bbox_to_anchor = (1,1))
-
+#%%
 fig, axs = plt.subplots(len(sols[0]),1, sharex=True)
 for i,sol in enumerate(sols.T):
     axs[i].plot(np.arange(timesteps)[1:], sol[1:], label = labels[i], ls=linestyles[i], color=colors[i], marker='')
