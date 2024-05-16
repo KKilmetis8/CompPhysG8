@@ -22,6 +22,7 @@ def eq(Y, rates, old, h):
     res += h * (Y - old)
     return res
 
+@numba.njit
 def inv_Jacobian(Ys, rates, old, h):
     reac_1 = [4*rates[0]*Ys[0]+rates[1]*Ys[1],
              rates[1]*Ys[0],
@@ -38,22 +39,23 @@ def inv_Jacobian(Ys, rates, old, h):
     reac_4 = [0,0,0,-2*rates[2]*Ys[3] + h]
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
 
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-25):
-    
+#@numba.njit
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-5):
+    oldoldY = oldY
     for nr_step in range(maxsteps):
-        newY = oldY - np.dot(invJ(args), fsol(args))
-        diff = np.linalg.norm(oldY-newY)
-        if diff<tol:
-            break
+        newY = oldY - np.dot(invJ(oldY, *args), fsol(oldY, *args))
+        # 
+        # if diff<tol:
+        #     print('HI')
+        #     break
         oldY = newY
-    return newY
- 
+    
+    print(fsol(newY, *args))
+    diff = np.linalg.norm(fsol(newY, *args))
+    print(diff)
 
-Hyd = 0.7
-DtoH = 1.5e-5 # Black 79 
-Deut = Hyd * DtoH
-He3 = 1e-20
-He = 0.28
+    return newY
+
 
 Hyd = 0.7
 DtoH = 2.1e-5 # Geiss Gloeckler 98
@@ -62,15 +64,21 @@ He3toH = 1.5e-5 # Geiss Gloeckler 98
 He3 = Hyd * He3toH
 He = 0.28
 
-h = 1e-17
-timesteps = 10000
+# Hyd = 1
+# DtoH = 2.1e-5 # Geiss Gloeckler 98
+# Deut = DtoH
+# He3toH = 1.5e-5 # Geiss Gloeckler 98
+# He3 = He3toH
+# He = 0.28/0.7
+year = 365*24*60*60 # [s]
+h = 1/year # 1/dT, 
+timesteps = 5
 Ys = np.zeros((timesteps, 4))
 Ys[0] = [Hyd, Deut, He3, He]
-#Ys[0] = [1, 0, 0, 0]
 rates = np.array([1.25e-19,	1.9e-2, 1e-9])
 
 for i in tqdm(range(1,timesteps)):
-    Ys[i] = root(eq, Ys[i-1], args = (rates, Ys[i-1], h), method='lm', jac=inv_Jacobian).x
+    Ys[i] = newton_raphson(Ys[i-1], inv_Jacobian, eq, args = (rates, Ys[i-1], h))
     #print(f"({np.round((i+1)/len(Ys))}%): {Ys[i]}",end='\r')
     
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
