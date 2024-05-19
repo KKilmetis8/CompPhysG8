@@ -32,10 +32,25 @@ def CoreT(M, R):
 #%%
 import mesa_reader as mr
 import numpy as np
-for i in range(1, 20):
-    p = mr.MesaData(f'profile{i}.data')
+star = 15
+for i in range(1, 100):
+    p = mr.MesaData(f'{star}star/profile{i}.data')
     
-    print(p.star_age / 1e6)
+    print(np.round(p.star_age / 1e6, 0))
     print(np.power(10, p.logT[-1]) / 1e6)
+    print(np.power(10, p.logRho[-1]))
     #print(np.power(10, p.logM[0]))
     print('---')
+#%%
+h = mr.MesaData(f'{star}star/history.data')
+print(h.star_mass)
+
+
+
+
+
+
+
+
+
+
