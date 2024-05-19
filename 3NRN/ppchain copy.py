@@ -45,30 +45,25 @@ def inv_Jacobian(Ys, rates, h):
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
 
 @numba.njit
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 3, tol=1e-2):
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 3, tol=1e-6):
     As = np.array([1,2,3,4])
     prevY = oldY.copy()
     rates, h = args
     conv_flag = False
-    #while not conv_flag:
+    timestep_increase = 0
+    # while not conv_flag:
     for nr_step in range(maxsteps):
         try:
             newY = oldY - np.dot(invJ(oldY, rates, h), 
                                  fsol(oldY, prevY, rates, h))
         except:
             break
-        if newY[1]<1e-6:
-            newY[1]= 1e-6 # newY[0] * DtoH # rates[0] * newY[0]**2 / h
+        
+        if newY[1]<1e-8:
+            newY[1] = newY[0] * 1e-6
+                
         oldY = newY
-
-        # crit = np.abs(1 - np.sum(newY))
-        # if crit < tol:
-        #     break
-        # conv_flag = True
-        # h = h*2
-        # print('timestep decreased')
-    return newY
-
+    return newY, h
 
 Hyd = 0.91
 DtoH = 2.1e-5 # Geiss Gloeckler 98
@@ -78,24 +73,27 @@ He3 = Hyd * He3toH
 He = 0.089
 
 year = 365*24*60*60 # [s]
-hmax = 1/(1e4*year) # 1/dT, 
-h = hmax
-timesteps = int(1e6)
+hmax = 1/(1e7*year)
+dT = 1e4*year
+hinit = 1/dT # 1/dT, 
+h = hinit
+timesteps = int(1e7)
 Ys = np.zeros((timesteps, 4))
 sols = np.zeros((timesteps, 4))
 As = np.array([1,2,3,4])
 Ys[0] = [Hyd, Deut, He3, He]
+Ys[0] /= np.sum(As * Ys)
 rates = np.array([7.9e-20,	1.01e-2, 2.22e-10])
 
 elapsed_time = 0
-max_time = 10e9*year
+max_time = 12e9*year
 for i in tqdm(range(1,timesteps)):
-    Ys[i] = newton_raphson(Ys[i-1], inv_Jacobian, eq,
+    Ys[i], h = newton_raphson(Ys[i-1], inv_Jacobian, eq,
                                     args = (rates, h),)
     elapsed_time += 1/h
     if elapsed_time > max_time:
         break
-    # h = np.min( [hmax, h/2] )
+
 print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
 #%%
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
@@ -103,13 +101,13 @@ colors = ["k", "tab:red", "b", "darkorange"]
 linestyles = ["-","-","-","--"]
 plt.figure(tight_layout=True)
 
-step = 1000
+step_plot = 100
 try:
     stop = np.where(Ys.T[0] == 0)[0][0]
 except:
     stop = -1
 for i,abundances in enumerate(Ys.T):
-    plt.plot(np.arange(timesteps)[:stop:step]*1e-5, abundances[:stop:step], 
+    plt.plot(np.arange(timesteps)[:stop:step_plot]*1e-4, abundances[:stop:step_plot], 
              label = labels[i], ls=linestyles[i], color=colors[i], marker='')
 
 plt.grid()
