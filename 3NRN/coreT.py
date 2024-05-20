@@ -32,13 +32,13 @@ def CoreT(M, R):
 #%%
 import mesa_reader as mr
 import numpy as np
-star = 15
+star = 20
 for i in range(1, 100):
     p = mr.MesaData(f'{star}star/profile{i}.data')
     
     print(np.round(p.star_age / 1e6, 0))
     print(np.power(10, p.logT[-1]) / 1e6)
-    print(np.power(10, p.logRho[-1]))
+    print(np.power(10, p.logRho[-2]))
     #print(np.power(10, p.logM[0]))
     print('---')
 #%%
