@@ -16,6 +16,7 @@ plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
 import numba
 from tqdm import tqdm
+from density_interp import den_of_T
 
 
 @numba.njit
@@ -84,11 +85,15 @@ def inv_Jacobian(Ys, rates, h):
               -h]
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4, reac_5, reac_6, reac_7, reac_8]))
 
-@numba.njit
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 2, tol=1e-10,):
+#@numba.njit
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 1, tol=1e-10,):
     prevY = oldY.copy()
     for nr_step in range(maxsteps):
-        newY = oldY - np.dot(invJ(oldY, *args), fsol(oldY, prevY, *args))
+        try:
+            newY = oldY - np.dot(invJ(oldY, *args), fsol(oldY, prevY, *args))
+        except:
+            newY = oldY
+            break
         oldY = newY
         if newY[2]<1e-9:
             newY[2] =  1e-9
@@ -101,13 +106,14 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 2, tol=1e-10,):
 
 year = 365*24*60*60 # [s]
 hmax = 1/(1e7*year)
-step = 1e4
+step = 1e3
 dT = step*year
 hinit = 1/dT # 1/dT, 
 h = hinit
-timesteps = int(1e7)
-Ys = np.zeros((timesteps, 8))
-sols = np.zeros((timesteps, 8))
+max_time = 12e9*year
+timesteps = int(max_time/(step*year))
+Ys = np.zeros((  200 ,8))
+# sols = np.zeros((timesteps, 8))
 
 # Initial abundances
 #           H,     12C,  13N,  13C,      14N,  15O,     15N,  4He
@@ -125,34 +131,45 @@ rates = np.array([2.85e-16,  # 12C + H -> 13N
                   2.48e-13,  # 14N + H -> 15O
                   8.18e-03,  # 15O     -> 15N # Half-life time
                   7.48e-14]) # 15N + H -> 12C + 4He 
-rates *= 5 # density
+rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
+T9 = rates_table[:,0][-1]
+density = den_of_T(T9)
+rates = rates_table[:,4:][-1] * density
 
+
+oldYs = Ys[0].copy()
+currentYs = np.zeros_like(Ys)
 elapsed_time = 0
-max_time = 12e9*year
+j = 1
+savetimes = np.linspace(0, timesteps, len(Ys)).astype(dtype = np.int32)
 for i in tqdm(range(1,timesteps)):
-    Ys[i] = newton_raphson(Ys[i-1], inv_Jacobian, eq,
+    currentYs = newton_raphson(oldYs, inv_Jacobian, eq,
                                     args = (rates, h),)
     elapsed_time += 1/h
     if elapsed_time > max_time:
         break
-print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
+    
+    if i == savetimes[j]:
+        Ys[j] = currentYs
+        j += 1
+print('\n Evo time', elapsed_time/(1e9*year), 'Gyrs')
 #%%
 labels = ["H", "$^{12}$C", "$^{13}$N", "$^{13}$C", "$^{14}$N", "$^{15}$O", "$^{15}$N", "$^{4}$He"]
 plt.figure(tight_layout=True)
-step_plot = 100
-try:
-    stop = np.where(Ys.T[0] == 0)[0][0]
-except:
-    stop = -1
+step_plot = 1
+# try:
+#     stop = np.where(Ys.T[0] == 0)[0][0]
+# except:
+#     stop = -1
     
 for i,abundances in enumerate(Ys.T):
-    plt.plot(np.arange(timesteps)[:stop:step_plot]/step, 
-             abundances[:stop:step_plot], 
+    plt.plot(savetimes * 1e-6, 
+             abundances, 
              label = labels[i], marker='')
 
 plt.yscale('log')
 plt.xscale('log')
-plt.ylim(1e-15,1.2)
+#plt.ylim(1e-10,1.2)
 plt.ylabel('Abundance', fontsize = 14)
 plt.xlabel('time [Gyr]', fontsize = 14)
 plt.legend(ncols = 1, bbox_to_anchor = (1.1,1))

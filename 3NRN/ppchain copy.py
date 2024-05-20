@@ -18,6 +18,7 @@ plt.rcParams['ytick.direction'] = 'in'
 from scipy.optimize import root
 import numba
 from tqdm import tqdm
+from density_interp import den_of_T
 
 @numba.njit
 def eq(Ys, old, rates, h):
@@ -59,18 +60,18 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 3, tol=1e-6):
         except:
             break
         
-        if newY[1]<1e-8:
-            newY[1] = newY[0] * 1e-6
+        if newY[1]<1e-6:
+            newY[1] = newY[0] * 5e-6
                 
         oldY = newY
     return newY, h
 
 Hyd = 0.91
-DtoH = 2.1e-5 # Geiss Gloeckler 98
+DtoH = 2e-3# Geiss Gloeckler 98
 Deut = Hyd * DtoH
-He3toH = 1.5e-5 # Geiss Gloeckler 98
-He3 = Hyd * He3toH
 He = 0.089
+He3toHe = 1e-2 # Geiss Gloeckler 98
+He3 = He * He3toHe
 
 year = 365*24*60*60 # [s]
 hmax = 1/(1e7*year)
@@ -84,6 +85,8 @@ As = np.array([1,2,3,4])
 Ys[0] = [Hyd, Deut, He3, He]
 Ys[0] /= np.sum(As * Ys)
 rates = np.array([7.9e-20,	1.01e-2, 2.22e-10])
+density = den_of_T(0.015) # sun
+rates *= density
 
 elapsed_time = 0
 max_time = 12e9*year

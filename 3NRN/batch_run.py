@@ -19,6 +19,9 @@ plt.rcParams['ytick.direction'] = 'in'
 import numba
 from tqdm import tqdm
 
+# Choc
+from density_interp import den_of_T
+
 # Functions
 @numba.njit
 def pp_eq(Ys, old, rates, h):
@@ -150,6 +153,7 @@ def cno_newton_raphson(oldY, invJ, fsol, args, maxsteps = 2, tol=1e-10,):
 # Table
 rates_table = np.loadtxt("3NRN/NRN_Rates.csv", skiprows=1, delimiter=',')
 T9s = rates_table[:,0]
+denities = den_of_T(T9s)
 pp_rates_all  = rates_table[:,1:4]
 cno_rates_all = rates_table[:,4:]
 
@@ -178,7 +182,8 @@ timesteps = int(1e7)
 times_of_equality = np.zeros((len(T9s), 2))
 for i, temp in enumerate(T9s):
     # something something prefactor stuff for light/heavy stars
-    pp_rates, cno_rates = pp_rates_all[i], cno_rates_all[i]
+    pp_rates = pp_rates_all[i] * denities[i]
+    cno_rates  = cno_rates_all[i] * denities[i]
     for j in range(2):
         dT = [1e4, 1e5][j]*year
         hinit = 1/dT # 1/dT, 
