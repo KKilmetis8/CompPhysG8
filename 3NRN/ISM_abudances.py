@@ -4,6 +4,8 @@
 Created on Mon May 20 11:50:08 2024
 
 @author: konstantinos
+
+ISM abundance data
 """
 import numpy as np
 
@@ -27,7 +29,7 @@ C12 = 0.988938 * C # Rosman & Taylor '98 table
 C13 = 1.1062 * C
 
 # Oxygen
-logOtoH = -3 # Nomoto + '06
+logOtoH = -3.0 # Nomoto + '06
 OtoH = np.power(10,logOtoH)
 O = OtoH * H
 O16 = 99.7621 * O # Rosman & Taylor '98 table

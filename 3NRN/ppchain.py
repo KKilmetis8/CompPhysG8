@@ -8,91 +8,140 @@ Created on Wed May  1 16:27:11 2024
 
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams['text.usetex'] = False # be FAST
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['figure.figsize'] = [4 , 4]
+plt.rcParams['axes.facecolor']= 'whitesmoke'
+plt.rcParams['xtick.direction'] = 'in'
+plt.rcParams['ytick.direction'] = 'in'
 from scipy.optimize import root
 import numba
 from tqdm import tqdm
+from density_interp import den_of_T
+import ISM_abudances as ism
 
 @numba.njit
-def eq(Y, rates, old, h):
-    res = np.zeros(4)
-    res[0] = rates[0] * 2 * Y[0]**2 + rates[1] * Y[0] * Y[1] - 2 * rates[2] * Y[2]**2
-    res[1] = - rates[0]  * Y[0]**2 + rates[1] * Y[0] * Y[1]
-    res[2] = - rates[1] * Y[0] * Y[1] + rates[2] *2* Y[2]**2
-    res[3] = - rates[2] * Y[2]**2
-    res += h * (Y - old)
-    return res
+def eq(Ys, old, rates, h):
+    res = np.zeros(len(Ys))
+    res[0] = -2*rates[0]*Ys[0]**2 - rates[1]*Ys[0]*Ys[1] + rates[2]*Ys[2]**2
+    res[1] = rates[0]*Ys[0]**2 - rates[1]*Ys[1]*Ys[0]
+    res[2] = rates[1]*Ys[0]*Ys[1] - 2*rates[2]*Ys[2]**2
+    res[3] = rates[2]*Ys[2]**2
+    return res - h*(Ys-old)
 
 @numba.njit
-def inv_Jacobian(Ys, rates, old, h):
-    reac_1 = [4*rates[0]*Ys[0]+rates[1]*Ys[1],
-             rates[1]*Ys[0],
-             -4*rates[2]*Ys[2],
-             0]
-    reac_2 = [-2*rates[0]*Ys[0]+rates[1]*Ys[1],
-             rates[1]*Ys[0],
-             0,
-             0]
-    reac_3 = [-rates[1]*Ys[1],
-             -rates[1]*Ys[0],
-             4*rates[2]*Ys[2] + h,
-             0]
-    reac_4 = [0,0,0,-2*rates[2]*Ys[3] + h]
+def inv_Jacobian(Ys, rates, h):
+    reac_1 = [-4*rates[0]*Ys[0]-rates[1]*Ys[1]-h,
+              -rates[1]*Ys[0],
+              2*rates[2]*Ys[2],
+              0]
+    reac_2 = [2*rates[0]*Ys[0]-rates[1]*Ys[1],
+              -rates[1]*Ys[0]-h,
+              0,0]
+    reac_3 = [rates[1]*Ys[1],
+              rates[1]*Ys[0],
+              -4*rates[2]*Ys[2]-h,
+              0]
+    reac_4 = [0,0,2*rates[2]*Ys[2], -h]
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
 
-#@numba.njit
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-5):
-    oldoldY = oldY
-    for nr_step in range(maxsteps):
-        newY = oldY - np.dot(invJ(oldY, *args), fsol(oldY, *args))
-        # 
-        # if diff<tol:
-        #     print('HI')
-        #     break
-        oldY = newY
-    
-    print(fsol(newY, *args))
-    diff = np.linalg.norm(fsol(newY, *args))
-    print(diff)
+@numba.njit
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-20):
+    prevY = oldY.copy()
+    rates, h = args
+    conv_flag = False
+    timestep_increase = 0
+    while not conv_flag:
+        for nr_step in range(maxsteps):
+            #try:
+            newY = oldY - np.dot(invJ(oldY, rates, h), 
+                                     fsol(oldY, prevY, rates, h))
+            sol = fsol(newY, prevY, rates, h)
+            
+            if newY[1]<1e-6:
+                newY[1] = newY[0] * 2e-4
+                
+            if np.all(sol < tol):
+                conv_flag = True
+                break
+            #except:
+            #    break              
+            oldY = newY
+        if not conv_flag:
+            h *= 2
+            timestep_increase += 1
+        if timestep_increase > 25:
+            return prevY, h, conv_flag
+    return newY, h, conv_flag
 
-    return newY
 
-
-Hyd = 0.7
-DtoH = 2.1e-5 # Geiss Gloeckler 98
-Deut = Hyd * DtoH
-He3toH = 1.5e-5 # Geiss Gloeckler 98
-He3 = Hyd * He3toH
-He = 0.28
-
-# Hyd = 1
-# DtoH = 2.1e-5 # Geiss Gloeckler 98
-# Deut = DtoH
-# He3toH = 1.5e-5 # Geiss Gloeckler 98
-# He3 = He3toH
-# He = 0.28/0.7
 year = 365*24*60*60 # [s]
-h = 1/year # 1/dT, 
-timesteps = 5
-Ys = np.zeros((timesteps, 4))
-Ys[0] = [Hyd, Deut, He3, He]
-rates = np.array([1.25e-19,	1.9e-2, 1e-9])
+step = 1e-4
+dT = step*year
+hinit = 1/dT # 1/dT, 
+h = hinit
+max_step = 1e6
+hmax = 1/(max_step * year)
+max_time = 12e11*year
+timesteps = int(max_time/(step*year))
+save_step = max_step * year
 
+Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
+As = np.array([1,2,3,4])
+Ys[0] = [ism.H, ism.Deut, ism.He3, ism.He]
+Ys[0] /= np.sum(As * Ys)
+rates = np.array([7.9e-20,	1.01e-2, 2.22e-10])
+density = den_of_T(0.015) # sun
+rates *= density
+
+#%%
+oldYs = np.array(Ys[0].copy())
+currentYs = np.zeros_like(Ys[0])
+elapsed_time = 0
+
+save_counter = 1
+savetimes = np.zeros(len(Ys))
 for i in tqdm(range(1,timesteps)):
-    Ys[i] = newton_raphson(Ys[i-1], inv_Jacobian, eq, args = (rates, Ys[i-1], h))
-    #print(f"({np.round((i+1)/len(Ys))}%): {Ys[i]}",end='\r')
-    
+    currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
+                                    args = (rates, h),)
+    if conv_flag:
+        elapsed_time += 1/h
+        rel_change = (currentYs - oldYs ) / currentYs
+        max_change = np.max(rel_change)
+        oldYs = currentYs
+        dT = np.min([1/hmax, 2/h, 10/h /max_change])
+        h = 1/dT
+        
+    if elapsed_time > save_counter * save_step :
+        savetimes[save_counter] = elapsed_time
+        Ys[save_counter] = currentYs
+        save_counter += 1
+        
+    if elapsed_time > max_time:
+        break
+
+print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
+#%%
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
-colors = ["k", "tab:red", "b", "green"]
+colors = ["k", "tab:red", "b", "darkorange"]
 linestyles = ["-","-","-","--"]
 plt.figure(tight_layout=True)
-for i,abundances in enumerate(Ys.T):
-    plt.plot(np.arange(timesteps), abundances, label = labels[i], ls=linestyles[i], color=colors[i], marker='')
 
-#plt.plot(np.arange(timesteps), Ys.sum(axis=1), 'k--')
+step_plot = 100
+try:
+    stop = np.where(Ys.T[0] == 0)[0][0]
+except:
+    stop = -1
+stop = -1
+unit = 1 / (year * 1e9)
+for i,abundances in enumerate(Ys.T):
+    plt.plot(savetimes[:stop]*unit, abundances[:stop], 
+             label = labels[i], ls=linestyles[i], color=colors[i], marker='')
 
 plt.grid()
 plt.yscale('log')
+plt.xscale('log')
 plt.ylabel('Abundance', fontsize = 14)
-plt.xlabel('time', fontsize = 14)
-#plt.ylim(1e-1,1)
-plt.legend(ncols = 1, loc='upper left', bbox_to_anchor = (1,1))
+plt.xlabel('time [Gyrs]', fontsize = 14)
+plt.legend(ncols = 1)

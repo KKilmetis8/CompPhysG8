@@ -16,6 +16,8 @@ plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
 import numba
 from tqdm import tqdm
+
+import ISM_abudances as ism
 from density_interp import den_of_T
 
 
@@ -85,43 +87,53 @@ def inv_Jacobian(Ys, rates, h):
               -h]
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4, reac_5, reac_6, reac_7, reac_8]))
 
-#@numba.njit
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 1, tol=1e-10,):
+@numba.njit
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
     prevY = oldY.copy()
-    for nr_step in range(maxsteps):
-        try:
-            newY = oldY - np.dot(invJ(oldY, *args), fsol(oldY, prevY, *args))
-        except:
-            newY = oldY
-            break
-        oldY = newY
-        if newY[2]<1e-9:
-            newY[2] =  1e-9
-        # if newY[4]<5e-4:
-        #     newY[4] =  5e-4
+    rates, h = args
+    conv_flag = False
+    timestep_increase = 0
+    while not conv_flag:
+        for nr_step in range(maxsteps):
+            #try:
+            newY = oldY - np.dot(invJ(oldY, rates, h), 
+                                     fsol(oldY, prevY, rates, h))
+            sol = fsol(newY, prevY, rates, h)
+            
+            if newY[1]<1e-6:
+                newY[1] = newY[0] * 2e-4
+                
+            if np.all(sol < tol):
+                conv_flag = True
+                break
+            #except:
+            #    break              
+            oldY = newY
+        if not conv_flag:
+            h *= 2
+            timestep_increase += 1
+        if timestep_increase > 25:
+            return prevY, h, conv_flag
+    return newY, h, conv_flag
 
-        if newY[5]<1e-9:
-            newY[5] =  1e-9
-    return newY
-
+# Timesteps
 year = 365*24*60*60 # [s]
-hmax = 1/(1e7*year)
-step = 1e3
+step = 1e-4
 dT = step*year
 hinit = 1/dT # 1/dT, 
 h = hinit
+max_step = 1e6
+hmax = 1/(max_step * year)
 max_time = 12e9*year
 timesteps = int(max_time/(step*year))
-Ys = np.zeros((  200 ,8))
-# sols = np.zeros((timesteps, 8))
+save_step = max_step * year
+Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
 
 # Initial abundances
 #           H,     12C,  13N,  13C,      14N,  15O,     15N,  4He
-# Ys[0] = [0.91, 0.00297, 1e-7, 3e-5,      5e-3, 1e-7, 3.68e-6, 0.09]
-Ys[0] = [0.91,    1e-3, 0, 1e-5,      5e-3,  0,   1e-4, 0.09]
+Ys[0] = [ism.H,  ism.C12, 0, ism.C13, ism.N14,  0,   ism.N15, ism.He]
 As =    [1,         12,  13,   13,       14,   15,      15,   4]
 As = np.array(As)
-#Ys[0] = [ 0.9,     0.1,    0,    0,        0,    0,       0,    0]
 Ys[0] /= np.sum(As * Ys) # normalize
 
 # Reaction rates (at T9 = 0.03)
@@ -134,37 +146,47 @@ rates = np.array([2.85e-16,  # 12C + H -> 13N
 rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
 T9 = rates_table[:,0][-1]
 density = den_of_T(T9)
-rates = rates_table[:,4:][-1] * density
+rates = rates * density
 
-
-oldYs = Ys[0].copy()
-currentYs = np.zeros_like(Ys)
+#%%
+oldYs = np.array(Ys[0].copy())
+currentYs = np.zeros_like(Ys[0])
 elapsed_time = 0
-j = 1
-savetimes = np.linspace(0, timesteps, len(Ys)).astype(dtype = np.int32)
+
+save_counter = 1
+savetimes = np.zeros(len(Ys))
 for i in tqdm(range(1,timesteps)):
-    currentYs = newton_raphson(oldYs, inv_Jacobian, eq,
+    currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                     args = (rates, h),)
-    elapsed_time += 1/h
+    if conv_flag:
+        elapsed_time += 1/h
+        rel_change = (currentYs - oldYs ) / currentYs
+        max_change = np.max(rel_change)
+        oldYs = currentYs
+        dT = np.min([1/hmax, 2/h, 10/h /max_change])
+        h = 1/dT
+        
+    if elapsed_time > save_counter * save_step :
+        savetimes[save_counter] = elapsed_time
+        Ys[save_counter] = currentYs
+        save_counter += 1
+        
     if elapsed_time > max_time:
         break
-    
-    if i == savetimes[j]:
-        Ys[j] = currentYs
-        j += 1
 print('\n Evo time', elapsed_time/(1e9*year), 'Gyrs')
 #%%
 labels = ["H", "$^{12}$C", "$^{13}$N", "$^{13}$C", "$^{14}$N", "$^{15}$O", "$^{15}$N", "$^{4}$He"]
 plt.figure(tight_layout=True)
 step_plot = 1
-# try:
-#     stop = np.where(Ys.T[0] == 0)[0][0]
-# except:
-#     stop = -1
-    
+try:
+    stop = np.where(Ys.T[0] < 1e-4)[0][0]
+except:
+    stop = -1
+
+unit = 1e9 / step
 for i,abundances in enumerate(Ys.T):
-    plt.plot(savetimes * 1e-6, 
-             abundances, 
+    plt.plot(savetimes[:stop] / unit, 
+             abundances[:stop], 
              label = labels[i], marker='')
 
 plt.yscale('log')
