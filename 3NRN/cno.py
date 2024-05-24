@@ -74,7 +74,6 @@ def inv_Jacobian(Ys, rates, h):
               -h]
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4, reac_5, reac_6, reac_7, reac_8]))
 
-
 @numba.njit
 def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
     prevY = oldY.copy()
@@ -88,9 +87,6 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
                                      fsol(oldY, prevY, rates, h))
             sol = fsol(newY, prevY, rates, h)
             
-            if newY[1]<1e-6:
-                newY[1] = newY[0] * 2e-4
-                
             if np.all(sol < tol):
                 conv_flag = True
                 break

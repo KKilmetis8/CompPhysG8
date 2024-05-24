@@ -47,7 +47,7 @@ def inv_Jacobian(Ys, rates, h):
     return np.linalg.inv(np.array([reac_1, reac_2, reac_3, reac_4]))
 
 @numba.njit
-def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-20):
+def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
     prevY = oldY.copy()
     rates, h = args
     conv_flag = False
@@ -75,16 +75,15 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-20):
             return prevY, h, conv_flag
     return newY, h, conv_flag
 
-
 year = 365*24*60*60 # [s]
-step = 1e-4
+step = 1
 dT = step*year
 hinit = 1/dT # 1/dT, 
 h = hinit
 max_step = 1e6
 hmax = 1/(max_step * year)
-max_time = 12e11*year
-timesteps = int(max_time/(step*year))
+max_time = 12e9*year
+timesteps = int(100_000)
 save_step = max_step * year
 
 Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
@@ -123,9 +122,10 @@ for i in tqdm(range(1,timesteps)):
 
 print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
 #%%
+AEK = '#F1C410'
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
-colors = ["k", "tab:red", "b", "darkorange"]
-linestyles = ["-","-","-","--"]
+colors = ["lightseagreen", "lightseagreen", AEK, AEK]
+linestyles = ["-","--","--","-"]
 plt.figure(tight_layout=True)
 
 step_plot = 100
@@ -144,4 +144,4 @@ plt.yscale('log')
 plt.xscale('log')
 plt.ylabel('Abundance', fontsize = 14)
 plt.xlabel('time [Gyrs]', fontsize = 14)
-plt.legend(ncols = 1)
+# plt.legend(ncols = 1)

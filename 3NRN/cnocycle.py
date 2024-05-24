@@ -100,9 +100,6 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
                                      fsol(oldY, prevY, rates, h))
             sol = fsol(newY, prevY, rates, h)
             
-            if newY[1]<1e-6:
-                newY[1] = newY[0] * 2e-4
-                
             if np.all(sol < tol):
                 conv_flag = True
                 break
@@ -122,10 +119,10 @@ step = 1e-4
 dT = step*year
 hinit = 1/dT # 1/dT, 
 h = hinit
-max_step = 1e6
+max_step = 1e4
 hmax = 1/(max_step * year)
 max_time = 12e9*year
-timesteps = int(max_time/(step*year))
+timesteps = int(10*max_time/(max_step))
 save_step = max_step * year
 Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
 
@@ -144,7 +141,10 @@ rates = np.array([2.85e-16,  # 12C + H -> 13N
                   8.18e-03,  # 15O     -> 15N # Half-life time
                   7.48e-14]) # 15N + H -> 12C + 4He 
 rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
-T9 = rates_table[:,0][-1]
+
+pick = 7
+rates = rates_table[pick][4:]
+T9 = rates_table[:,0][pick]
 density = den_of_T(T9)
 rates = rates * density
 
@@ -152,7 +152,7 @@ rates = rates * density
 oldYs = np.array(Ys[0].copy())
 currentYs = np.zeros_like(Ys[0])
 elapsed_time = 0
-
+equality_flag = False
 save_counter = 1
 savetimes = np.zeros(len(Ys))
 for i in tqdm(range(1,timesteps)):
@@ -162,8 +162,10 @@ for i in tqdm(range(1,timesteps)):
         elapsed_time += 1/h
         rel_change = (currentYs - oldYs ) / currentYs
         max_change = np.max(rel_change)
+        max_change = np.nan_to_num(max_change, nan = 1e-20, posinf = 1e-20, neginf= 1e-20)
+
         oldYs = currentYs
-        dT = np.min([1/hmax, 2/h, 10/h /max_change])
+        dT = np.min([1/hmax, 2/h, 10/h / max_change])
         h = 1/dT
         
     if elapsed_time > save_counter * save_step :
@@ -171,30 +173,43 @@ for i in tqdm(range(1,timesteps)):
         Ys[save_counter] = currentYs
         save_counter += 1
         
+    if currentYs[-1] >= currentYs[0] and equality_flag == False:
+        equality_flag = True
+        equality_time = elapsed_time / (year * 1e9)
     if elapsed_time > max_time:
         break
 print('\n Evo time', elapsed_time/(1e9*year), 'Gyrs')
+# print(equality_time)
 #%%
 labels = ["H", "$^{12}$C", "$^{13}$N", "$^{13}$C", "$^{14}$N", "$^{15}$O", "$^{15}$N", "$^{4}$He"]
+AEK = '#F1C410'
+colors = ['dodgerblue', 'dimgrey', 'yellowgreen', 'dimgrey', 'yellowgreen', 'tomato', 'yellowgreen', AEK ]
+lines = ['-', '-', '--', '-.', '-', '--', '-.', '-']
 plt.figure(tight_layout=True)
 step_plot = 1
-try:
-    stop = np.where(Ys.T[0] < 1e-4)[0][0]
-except:
-    stop = -1
+# try:
+#     stop = np.where(Ys.T[0] < 1e-4)[0][0]
+# except:
+stop = -1
 
-unit = 1e9 / step
+unit = year * 1e9
 for i,abundances in enumerate(Ys.T):
     plt.plot(savetimes[:stop] / unit, 
-             abundances[:stop], 
-             label = labels[i], marker='')
+             abundances[:stop], color = colors[i], ls = lines[i],
+             label = labels[i], marker='', linewidth = 2.5)
+
+eq_idx =  np.argmin(np.abs( equality_time - savetimes/unit))
+plt.scatter(equality_time, Ys.T[-1][eq_idx]
+            , marker = 'h', c = 'gold', ec = 'dodgerblue', 
+            linewidth = 2, 
+            s = 200, zorder = 4)
 
 plt.yscale('log')
 plt.xscale('log')
-#plt.ylim(1e-10,1.2)
+plt.ylim(1e-17,2)
 plt.ylabel('Abundance', fontsize = 14)
 plt.xlabel('time [Gyr]', fontsize = 14)
-plt.legend(ncols = 1, bbox_to_anchor = (1.1,1))
+# plt.legend(ncols = 1, bbox_to_anchor = (1.1,1))
 # #%%
 # fig, axs = plt.subplots(len(sols[0]),1, sharex=True)
 # for i,sol in enumerate(sols.T):
