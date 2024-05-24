@@ -101,6 +101,8 @@ elapsed_time = 0
 
 save_counter = 1
 savetimes = np.zeros(len(Ys))
+equality_time = 0
+equality_flag = False
 for i in tqdm(range(1,timesteps)):
     currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                     args = (rates, h),)
@@ -116,6 +118,10 @@ for i in tqdm(range(1,timesteps)):
         savetimes[save_counter] = elapsed_time
         Ys[save_counter] = currentYs
         save_counter += 1
+
+    if currentYs[-1] >= currentYs[0] and equality_flag == False:
+        equality_flag = True
+        equality_time = elapsed_time / (year * 1e9)
         
     if elapsed_time > max_time:
         break
@@ -124,7 +130,7 @@ print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
 #%%
 AEK = '#F1C410'
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
-colors = ["lightseagreen", "lightseagreen", AEK, AEK]
+colors = ["dodgerblue", "dodgerblue", AEK, AEK]
 linestyles = ["-","--","--","-"]
 plt.figure(tight_layout=True)
 
@@ -133,11 +139,18 @@ try:
     stop = np.where(Ys.T[0] == 0)[0][0]
 except:
     stop = -1
-stop = -1
+
 unit = 1 / (year * 1e9)
 for i,abundances in enumerate(Ys.T):
     plt.plot(savetimes[:stop]*unit, abundances[:stop], 
-             label = labels[i], ls=linestyles[i], color=colors[i], marker='')
+             label = labels[i], ls=linestyles[i], color=colors[i], marker='', linewidth=2.5)
+
+eq_idx =  np.argmin(np.abs( equality_time - savetimes*unit))
+plt.scatter(equality_time, Ys.T[-1][eq_idx]
+            , marker = 'h', c = 'gold', ec = 'dodgerblue', 
+            linewidth = 2, 
+            s = 200, zorder = 4)
+
 
 plt.grid()
 plt.yscale('log')
@@ -145,3 +158,5 @@ plt.xscale('log')
 plt.ylabel('Abundance', fontsize = 14)
 plt.xlabel('time [Gyrs]', fontsize = 14)
 # plt.legend(ncols = 1)
+
+# %%

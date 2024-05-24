@@ -46,7 +46,7 @@ cno_T9 = np.array(cno_T9) * 1e3
 cno_T9s_bad = np.array(cno_T9s_bad) * 1e3
 #%%
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(tight_layout=True)
 
 AEK = '#F1C410'
 ax.plot(T9s * 1e3, pp_eqs, c = 'k', marker = 'h', ls=':')
@@ -59,16 +59,17 @@ ax.plot( [cno_T9s_bad[-1], cno_T9[0]], [cno_eqs_bad[-1], cno_eqs[0]],
 ax.axvline(18, color = 'maroon', ls = '--')
 ax.set_xscale('log')
 # plt.yscale('log')
-ax.set_xlabel('Temperature MK')
+ax.set_xlabel('Temperature [MK]')
 ax.set_ylabel('Time to H=He [Gyrs]')
 
 # Inset
-left, bottom, width, height = [0.5, 0.4, 0.4, 0.5]
+left, bottom, width, height = [0.55, 0.4, 0.35, 0.5]
 ax2 = fig.add_axes([left, bottom, width, height])
 ax2.plot(T9s[14:] * 1e3, pp_eqs[14:], c = 'k', marker = 'h', ls=':')
-ax2.plot(cno_T9[4:] * 1e3, cno_eqs[4:], c = AEK, marker = 'h', ls=':')
+ax2.plot(cno_T9[3:], cno_eqs[3:], c = AEK, marker = 'h', ls=':', markeredgecolor='k')
 ax2.set_yscale('log')
-#%%
 ax2.set_facecolor('snow')
 ax.indicate_inset_zoom(ax2, edgecolor="#3d3c3c")
 
+
+# %%

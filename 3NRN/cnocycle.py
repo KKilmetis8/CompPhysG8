@@ -119,18 +119,22 @@ step = 1e-4
 dT = step*year
 hinit = 1/dT # 1/dT, 
 h = hinit
-max_step = 1e4
+max_step = 1e5
 hmax = 1/(max_step * year)
 max_time = 12e9*year
 timesteps = int(10*max_time/(max_step))
 save_step = max_step * year
 Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
 
+metallicity = 10
+
 # Initial abundances
 #           H,     12C,  13N,  13C,      14N,  15O,     15N,  4He
 Ys[0] = [ism.H,  ism.C12, 0, ism.C13, ism.N14,  0,   ism.N15, ism.He]
 As =    [1,         12,  13,   13,       14,   15,      15,   4]
 As = np.array(As)
+Z_weights = np.array([1]+list(metallicity*np.ones(len(Ys[0])-2))+[1])
+Ys[0] *= Z_weights
 Ys[0] /= np.sum(As * Ys) # normalize
 
 # Reaction rates (at T9 = 0.03)
@@ -142,7 +146,7 @@ rates = np.array([2.85e-16,  # 12C + H -> 13N
                   7.48e-14]) # 15N + H -> 12C + 4He 
 rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
 
-pick = 7
+pick = 12
 rates = rates_table[pick][4:]
 T9 = rates_table[:,0][pick]
 density = den_of_T(T9)
@@ -155,6 +159,7 @@ elapsed_time = 0
 equality_flag = False
 save_counter = 1
 savetimes = np.zeros(len(Ys))
+equality_time = 0
 for i in tqdm(range(1,timesteps)):
     currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                     args = (rates, h),)
