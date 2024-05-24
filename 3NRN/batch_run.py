@@ -9,7 +9,7 @@ Created on Sun May  19 22:37:31 2024
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-plt.rcParams['text.usetex'] = False # be FAST
+plt.rcParams['text.usetex'] = True # be FAST
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['figure.figsize'] = [4 , 4]
@@ -33,7 +33,7 @@ for T9 in tqdm(T9s):
     _, eqpp = run_network('pp', T9, max_step = 1e6)
     pp_eqs.append(eqpp)
     try:
-        _, eqcno = run_network('cno', T9, max_step = 1e7, max_time=20e9)
+        _, eqcno = run_network('cno', T9, initY = 10, max_step = 1e6, max_time=20e9)
         cno_eqs.append(eqcno)
         cno_T9.append(T9)
     except NameError:
@@ -42,6 +42,7 @@ for T9 in tqdm(T9s):
             cno_eqs_bad.append(20)
     except np.linalg.LinAlgError:
         continue
+
 cno_T9 = np.array(cno_T9) * 1e3
 cno_T9s_bad = np.array(cno_T9s_bad) * 1e3
 #%%
@@ -60,7 +61,7 @@ ax.axvline(18, color = 'maroon', ls = '--')
 ax.set_xscale('log')
 # plt.yscale('log')
 ax.set_xlabel('Temperature [MK]')
-ax.set_ylabel('Time to H=He [Gyrs]')
+ax.set_ylabel('$t_\\mathrm{eq}$ [Gyrs]')
 
 # Inset
 left, bottom, width, height = [0.55, 0.4, 0.35, 0.5]

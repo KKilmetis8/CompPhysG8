@@ -15,12 +15,12 @@ from density_interp import den_of_T
 
 def normalize_abuds(Ys, cycle):
     '''
-    Normalizes inital abundances so that sum(Y_i) = 1
+    Normalizes initial abundances so that sum(Y_i) = 1
 
     Parameters
     ----------
     Ys : float
-        Initial abudances, len 4 for pp len 8 for cno.
+        Initial abundances, len 4 for pp len 8 for cno.
     cycle : str
         The cycle to simulate.
 
@@ -49,12 +49,14 @@ def run_network(cycle, coreT, initY = None,
     Parameters
     ----------
     cycle : str,
-        The cycle to simulate. Either pp or cno.
+        The cycle to simulate. Either `pp` or `cno`.
     coreT : float,
-        core temprature in Giga Kelvin.
-    initY : arr, optional
-        Initial abundacnes. Length 4 for pp length 8 for cno. If not provided
-        ISM values will be used
+        core temperature in Giga Kelvin.
+    initY : arr or int, optional
+        Initial abundances. Length 4 for pp length 8 for cno. If not provided
+        ISM values will be used.
+        If `initY` is an integer, use it as a metallicity multiplier so that
+        Z = initY * Z_ISM.
     init_step : float, optional
         Initial timestep, in years. The default is 1e-2.
     max_step : float, optional
@@ -67,7 +69,7 @@ def run_network(cycle, coreT, initY = None,
     Returns
     -------
     Ys: arr,
-        Array containing the evolution of the abudances.
+        Array containing the evolution of the abundances.
     cross_
     '''
     
@@ -93,7 +95,7 @@ def run_network(cycle, coreT, initY = None,
         from pp import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
         rates = rates_table[:,1:4][closest_available_T_index]
-        if initY == None:
+        if initY is None:
             Ys[0] = [ism.H, ism.Deut, ism.He3, ism.He]
         else:
             Ys[0] = initY
@@ -101,12 +103,16 @@ def run_network(cycle, coreT, initY = None,
         from cno import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
         rates = rates_table[:,4:][closest_available_T_index]
-        if initY == None:
+        if initY is None:
             Ys[0] = [ism.H, ism.C12, 0, ism.C13, ism.N14, 0, ism.N15, ism.He]
+        elif type(initY) in [int, float]:
+            Ys[0] = [ism.H, ism.C12, 0, ism.C13, ism.N14, 0, ism.N15, ism.He]
+            Z_weights = np.array([1]+list(initY*np.ones(6))+[1])
+            Ys[0] *= Z_weights
         else:
             Ys[0] = initY
     else:
-        print(f'Cycle {cycle} not available, supported cycles \n pp, \n cno')
+        print(f"Cycle '{cycle}' not available, supported cycles \n 'pp', \n 'cno'")
         return 1
     Ys[0] = normalize_abuds(Ys[0], cycle)
     

@@ -126,7 +126,7 @@ timesteps = int(10*max_time/(max_step))
 save_step = max_step * year
 Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
 
-metallicity = 10
+metallicity = 1
 
 # Initial abundances
 #           H,     12C,  13N,  13C,      14N,  15O,     15N,  4He
@@ -181,6 +181,7 @@ for i in tqdm(range(1,timesteps)):
     if currentYs[-1] >= currentYs[0] and equality_flag == False:
         equality_flag = True
         equality_time = elapsed_time / (year * 1e9)
+    
     if elapsed_time > max_time:
         break
 print('\n Evo time', elapsed_time/(1e9*year), 'Gyrs')
@@ -219,3 +220,6 @@ plt.xlabel('time [Gyr]', fontsize = 14)
 # fig, axs = plt.subplots(len(sols[0]),1, sharex=True)
 # for i,sol in enumerate(sols.T):
 #     axs[i].plot(np.arange(timesteps)[1:], sol[1:], label = labels[i], marker='').legend(ncols = 1, loc='upper left', bbox_to_anchor = (1,1))
+
+np.save(f'eq_time (Z={metallicity})', [equality_time, Ys.T[-1][eq_idx]])
+np.save(f'metallicity (Z={metallicity})', np.vstack((savetimes[:stop] / unit, Ys.T[[0,-1]][:,:stop])))
