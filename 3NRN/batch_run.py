@@ -30,23 +30,26 @@ cno_T9 = []
 cno_T9s_bad = []
 pp_eqs = []
 for T9 in tqdm(T9s):
-    _, eqpp = run_network('pp', T9, max_step = 1e6)
+    _, eqpp = run_network('pp', T9, max_step = 1e8, max_time=1e12)
     pp_eqs.append(eqpp)
     try:
-        _, eqcno = run_network('cno', T9, initY = 10, max_step = 1e6, max_time=20e9)
-        cno_eqs.append(eqcno)
-        cno_T9.append(T9)
-    except NameError:
-        if T9<70*1e3:
+        _, eqcno = run_network('cno', T9, initY = 10, max_step = 1e7, max_time=1e12)
+        if eqcno >= 1e12/1e9:
             cno_T9s_bad.append(T9)
-            cno_eqs_bad.append(20)
+            cno_eqs_bad.append(1100)
+        else:
+            cno_eqs.append(eqcno)
+            cno_T9.append(T9)
+    # except NameError:
+    #     if T9<70*1e3:
+    #         cno_T9s_bad.append(T9)
+    #         cno_eqs_bad.append(20)
     except np.linalg.LinAlgError:
         continue
 
 cno_T9 = np.array(cno_T9) * 1e3
 cno_T9s_bad = np.array(cno_T9s_bad) * 1e3
 #%%
-
 fig, ax = plt.subplots(tight_layout=True)
 
 AEK = '#F1C410'
@@ -56,7 +59,7 @@ ax.plot(cno_T9, cno_eqs, c = AEK, marker = 'h', ls=':',
 ax.plot(cno_T9s_bad, cno_eqs_bad, c = AEK, marker = '^', ls=':', 
          markeredgecolor = 'r')
 ax.plot( [cno_T9s_bad[-1], cno_T9[0]], [cno_eqs_bad[-1], cno_eqs[0]], 
-         c = AEK, marker ='', ls =':')
+          c = AEK, marker ='', ls =':')
 ax.axvline(18, color = 'maroon', ls = '--')
 ax.set_xscale('log')
 # plt.yscale('log')
@@ -66,11 +69,19 @@ ax.set_ylabel('$t_\\mathrm{eq}$ [Gyrs]')
 # Inset
 left, bottom, width, height = [0.55, 0.4, 0.35, 0.5]
 ax2 = fig.add_axes([left, bottom, width, height])
-ax2.plot(T9s[14:] * 1e3, pp_eqs[14:], c = 'k', marker = 'h', ls=':')
-ax2.plot(cno_T9[3:], cno_eqs[3:], c = AEK, marker = 'h', ls=':', markeredgecolor='k')
+start1 = 11
+start2 = 4 
+ax2.plot(T9s[start1:] * 1e3, pp_eqs[start1:], 
+         c = 'k', marker = 'h', ls=':')
+ax2.plot(cno_T9[start2:], cno_eqs[start2:], 
+         c = AEK, marker = 'h', ls=':', markeredgecolor='k')
 ax2.set_yscale('log')
 ax2.set_facecolor('snow')
 ax.indicate_inset_zoom(ax2, edgecolor="#3d3c3c")
 
+#%%
+fitcno = np.polyfit(np.log(cno_T9), np.log(cno_eqs), deg = 1)
+fitpp = np.polyfit(np.log(T9s * 1e3), np.log(pp_eqs), deg =1 )
+print('PP: ', fitpp[0])
+print('CNO: ', fitcno[0])
 
-# %%

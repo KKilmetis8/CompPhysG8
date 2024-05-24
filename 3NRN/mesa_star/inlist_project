@@ -1,0 +1,67 @@
+! inlist to evolve a yyyy star
+
+! For the sake of future readers of this file (yourself included),
+! ONLY include the controls you are actually using.  DO NOT include
+! all of the other controls that simply have their default values.
+
+&star_job
+  ! see star/defaults/star_job.defaults in mesa filetree
+  ! or see DEFAULTS/star_job.defaults
+
+  ! begin with a pre-main sequence model
+    create_pre_main_sequence_model = .true.
+
+  ! save a model at the end of the run
+    save_model_when_terminate = .false.
+    save_model_filename = 'final_model.mod'
+
+   ! display on-screen plots
+   pgstar_flag = .true.
+
+
+   ! customize the model PROFILES. see profiles_columns.list for all options to add
+   ! use profile_columns_file = '' to use all default values in profiles_columns.list		
+   profile_columns_file = ''
+
+   ! customize the model HISTORY. see history_columns.list for all options to add
+   ! use history_columns_file = '' to use all default values in history_columns.list		
+   history_columns_file = ''
+
+/ ! end of star_job namelist
+
+
+
+&controls
+  ! see star/defaults/controls.defaults in mesa filetree
+  ! or see DEFAULTS/controls.defaults
+
+  ! starting specifications
+    initial_mass = 15 ! in Msun units
+    initial_z = 0.02
+
+
+  ! example stopping criterion, there are many more
+  ! stop when the center mass fraction of h1 drops below this limit
+    xa_central_lower_limit_species(1) = 'h1'
+    xa_central_lower_limit(1) = 1d-3
+
+/ ! end of controls namelist
+
+
+! anything below will very rarely be edited
+
+&eos
+  ! eos options
+  ! see eos/defaults/eos.defaults
+
+/ ! end of eos namelist
+
+
+&kap
+  ! kap options
+  ! see kap/defaults/kap.defaults
+  use_Type2_opacities = .true.
+  Zbase = 0.02
+
+/ ! end of kap namelist
+

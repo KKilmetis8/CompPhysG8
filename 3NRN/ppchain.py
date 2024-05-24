@@ -59,8 +59,8 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
                                      fsol(oldY, prevY, rates, h))
             sol = fsol(newY, prevY, rates, h)
             
-            if newY[1]<1e-6:
-                newY[1] = newY[0] * 2e-4
+            if newY[1]<4e-7:
+                newY[1] = newY[0] * 6e-8
                 
             if np.all(sol < tol):
                 conv_flag = True
@@ -80,19 +80,24 @@ step = 1
 dT = step*year
 hinit = 1/dT # 1/dT, 
 h = hinit
-max_step = 1e6
+max_step = 1e7
 hmax = 1/(max_step * year)
-max_time = 12e9*year
-timesteps = int(100_000)
+max_time = 1e12*year
+timesteps = int( max_time / (year*max_step))
 save_step = max_step * year
 
 Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
 As = np.array([1,2,3,4])
 Ys[0] = [ism.H, ism.Deut, ism.He3, ism.He]
 Ys[0] /= np.sum(As * Ys)
-rates = np.array([7.9e-20,	1.01e-2, 2.22e-10])
-density = den_of_T(0.015) # sun
-rates *= density
+rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
+
+pick = 0
+rates = rates_table[pick][1:4]
+T9 = rates_table[:,0][pick]
+density = den_of_T(T9)
+rates = rates * density
+
 
 #%%
 oldYs = np.array(Ys[0].copy())
@@ -126,7 +131,9 @@ for i in tqdm(range(1,timesteps)):
     if elapsed_time > max_time:
         break
 
-print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
+print('\n Evo time', elapsed_time/(1e9*year), 'Gyrs')
+print('\n Eq time', equality_time, 'Gyrs')
+
 #%%
 AEK = '#F1C410'
 labels = ["H", "D", "$^{3}$He", "$^{4}$He"]
@@ -153,6 +160,8 @@ plt.scatter(equality_time, Ys.T[-1][eq_idx]
 
 
 plt.grid()
+plt.ylim(1e-8,10)
+plt.xlim(1e-3,1e3)
 plt.yscale('log')
 plt.xscale('log')
 plt.ylabel('Abundance', fontsize = 14)
