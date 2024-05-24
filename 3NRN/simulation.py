@@ -55,8 +55,8 @@ def run_network(cycle, coreT, initY = None,
     initY : arr or int, optional
         Initial abundances. Length 4 for pp length 8 for cno. If not provided
         ISM values will be used.
-        If `initY` is an integer, use it as a metallicity multiplier so that
-        Z = initY * Z_ISM.
+        For `cycle=cno`: If `initY` is an integer, use it as a 
+        metallicity multiplier so that Z = initY * Z_ISM.
     init_step : float, optional
         Initial timestep, in years. The default is 1e-2.
     max_step : float, optional
@@ -80,7 +80,7 @@ def run_network(cycle, coreT, initY = None,
     
     h = 1 / (init_step * year)
     hmax = 1/(max_step * year)
-    max_time = max_time*year
+    max_time = 12e9*year
     timesteps = int(max_time/(init_step*year))
     
     # Look up rates from table ------------------------------------------------
@@ -127,7 +127,6 @@ def run_network(cycle, coreT, initY = None,
     save_counter = 1
     savetimes = np.zeros(len(Ys))
     equality_flag = False
-    equality_time = max_time / (year * 1e9)
     for i in range(1,timesteps):
         currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                         args = (rates, h),)
