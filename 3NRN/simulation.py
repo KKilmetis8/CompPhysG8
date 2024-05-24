@@ -15,12 +15,12 @@ from density_interp import den_of_T
 
 def normalize_abuds(Ys, cycle):
     '''
-    Normalizes inital abundances so that sum(Y_i) = 1
+    Normalizes initial abundances so that sum(Y_i) = 1
 
     Parameters
     ----------
     Ys : float
-        Initial abudances, len 4 for pp len 8 for cno.
+        Initial abundances, len 4 for pp len 8 for cno.
     cycle : str
         The cycle to simulate.
 
@@ -40,21 +40,23 @@ def normalize_abuds(Ys, cycle):
     Ys /= np.sum(As * Ys)
     return Ys 
 
-@numba.njit
+#@numba.njit
 def run_network(cycle, coreT, initY = None,
                 init_step = 1e-2, max_step = 1e6, 
-                save_step = None, max_time = 12e9):
+                save_step = None, max_time = 20e9):
     '''
 
     Parameters
     ----------
     cycle : str,
-        The cycle to simulate. Either pp or cno.
+        The cycle to simulate. Either `pp` or `cno`.
     coreT : float,
-        core temprature in Giga Kelvin.
-    initY : arr, optional
-        Initial abundacnes. Length 4 for pp length 8 for cno. If not provided
-        ISM values will be used
+        core temperature in Giga Kelvin.
+    initY : arr or int, optional
+        Initial abundances. Length 4 for pp length 8 for cno. If not provided
+        ISM values will be used.
+        For `cycle=cno`: If `initY` is an integer, use it as a 
+        metallicity multiplier so that Z = initY * Z_ISM.
     init_step : float, optional
         Initial timestep, in years. The default is 1e-2.
     max_step : float, optional
@@ -67,7 +69,7 @@ def run_network(cycle, coreT, initY = None,
     Returns
     -------
     Ys: arr,
-        Array containing the evolution of the abudances.
+        Array containing the evolution of the abundances.
     cross_
     '''
     
@@ -93,21 +95,24 @@ def run_network(cycle, coreT, initY = None,
         from pp import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
         rates = rates_table[:,1:4][closest_available_T_index]
-        if initY == None:
+        if initY is None:
             Ys[0] = [ism.H, ism.Deut, ism.He3, ism.He]
         else:
             Ys[0] = initY
     elif cycle == 'cno':
         from cno import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
-
-        rates = rates_table[:,5:]
-        if initY == None:
+        rates = rates_table[:,4:][closest_available_T_index]
+        if initY is None:
             Ys[0] = [ism.H, ism.C12, 0, ism.C13, ism.N14, 0, ism.N15, ism.He]
+        elif type(initY) in [int, float]:
+            Ys[0] = [ism.H, ism.C12, 0, ism.C13, ism.N14, 0, ism.N15, ism.He]
+            Z_weights = np.array([1]+list(initY*np.ones(6))+[1])
+            Ys[0] *= Z_weights
         else:
             Ys[0] = initY
     else:
-        print(f'Cycle {cycle} not available, supported cycles \n pp, \n cno')
+        print(f"Cycle '{cycle}' not available, supported cycles \n 'pp', \n 'cno'")
         return 1
     Ys[0] = normalize_abuds(Ys[0], cycle)
     
@@ -121,6 +126,7 @@ def run_network(cycle, coreT, initY = None,
     elapsed_time = 0
     save_counter = 1
     savetimes = np.zeros(len(Ys))
+    equality_flag = False
     for i in range(1,timesteps):
         currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                         args = (rates, h),)
@@ -128,6 +134,7 @@ def run_network(cycle, coreT, initY = None,
             elapsed_time += 1/h
             rel_change = (currentYs - oldYs ) / currentYs
             max_change = np.max(rel_change)
+            max_change = np.nan_to_num(max_change, nan = 1e-20, posinf = 1e-20, neginf= 1e-20)
             oldYs = currentYs
             dT = np.min([1/hmax, 2/h, 10/h /max_change])
             h = 1/dT
@@ -137,12 +144,21 @@ def run_network(cycle, coreT, initY = None,
             Ys[save_counter] = currentYs
             save_counter += 1
             
-        if currentYs[-1] >= currentYs[0]:
-            equality_time = elapsed_time
+        if currentYs[-1] >= currentYs[0] and equality_flag == False:
+            equality_flag = True
+            equality_time = elapsed_time / (year * 1e9)
             
         if elapsed_time > max_time:
             break
-    print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
+        
+    # print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
     
 
     return Ys, equality_time
+
+if __name__ == '__main__':
+    # import config as c
+    # Ys, eq = run_network(c.cycle, c.coreT, c.initY,
+    #                      c.init_step, c.max_step, 
+    #                      c.save_step, c.max_time)
+    Ys, eq = run_network('cno', 0.015)

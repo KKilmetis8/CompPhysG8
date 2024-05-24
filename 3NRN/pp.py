@@ -46,8 +46,8 @@ def newton_raphson(oldY, invJ, fsol, args, maxsteps = 10, tol=1e-10):
                                      fsol(oldY, prevY, rates, h))
             sol = fsol(newY, prevY, rates, h)
             
-            if newY[1]<1e-6:
-                newY[1] = newY[0] * 2e-4
+            # if newY[1]<1e-8:
+            #     newY[1] = newY[0] * 5e-8
                 
             if np.all(sol < tol):
                 conv_flag = True
