@@ -7,7 +7,7 @@ Created on Mon May 20 15:02:28 2024
 """
 # Vanilla
 import numpy as np
-import numba
+#import numba
 
 # Choc
 import ISM_abudances as ism
@@ -39,6 +39,38 @@ def normalize_abuds(Ys, cycle):
         return 1
     Ys /= np.sum(As * Ys)
     return Ys 
+
+def interp_rates(Tcore, deg = 6):
+    '''
+    Finds the reaction rates for a given Tcore temperature 
+    not equal to the ones in the table.
+
+    Parameters
+    ----------
+    Tcore : float
+        Core temperature in GK.
+    def : int
+        Degree of the interpolation polynomial.
+
+    Returns
+    -------
+    interp_rates: arr
+        Interpolated rates.
+    '''
+    rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
+
+    T9s = rates_table[:,0]
+    rates_pp = rates_table[:,1:4]
+    rates_cno = rates_table[:,4:]
+
+    interp_rates = []
+    for reac_rates in [rates_pp, rates_cno]:
+        for rates in reac_rates.T:
+            coeff = np.polyfit(np.log10(T9s), np.log10(rates), deg)
+            interp_rates.append(10**np.poly1d(coeff)(np.log10(Tcore)))
+    
+    return np.array(interp_rates)
+
 
 #@numba.njit
 def run_network(cycle, coreT, initY = None,
@@ -84,17 +116,18 @@ def run_network(cycle, coreT, initY = None,
     timesteps = int(max_time/(init_step*year))
     
     # Look up rates from table ------------------------------------------------
-    density = den_of_T(coreT) # sun
-    rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
-    T9 = rates_table[:,0]
-    closest_available_T_index = np.argmin(np.abs(T9 - coreT))
+    # rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
+    # T9s = rates_table[:,0]
+    # closest_available_T_index = np.argmin(np.abs(T9s - coreT))
+    all_rates = interp_rates(coreT, deg=6)
     
     # Get the desired cycle ---------------------------------------------------
 
     if cycle == 'pp':
         from pp import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
-        rates = rates_table[:,1:4][closest_available_T_index]
+        # rates = rates_table[:,1:4][closest_available_T_index]
+        rates = all_rates[:3]
         if initY is None:
             Ys[0] = [ism.H, ism.Deut, ism.He3, ism.He]
         else:
@@ -102,7 +135,8 @@ def run_network(cycle, coreT, initY = None,
     elif cycle == 'cno':
         from cno import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
-        rates = rates_table[:,4:][closest_available_T_index]
+        # rates = rates_table[:,4:][closest_available_T_index]
+        rates = all_rates[3:]
         if initY is None:
             Ys[0] = [ism.H, ism.C12, 0, ism.C13, ism.N14, 0, ism.N15, ism.He]
         elif type(initY) in [int, float]:
@@ -127,7 +161,7 @@ def run_network(cycle, coreT, initY = None,
     save_counter = 1
     savetimes = np.zeros(len(Ys))
     equality_flag = False
-    equality_time = max_time+1
+    equality_time = max_time*year
     for i in range(1,timesteps):
         currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                         args = (rates, h),)
@@ -145,12 +179,16 @@ def run_network(cycle, coreT, initY = None,
             Ys[save_counter] = currentYs
             save_counter += 1
             
-        if currentYs[-1] >= currentYs[0] and equality_flag == False:
+        if currentYs[-1] >= currentYs[0] and ~equality_flag:
             equality_flag = True
-            equality_time = elapsed_time 
+            equality_time = elapsed_time
             
         if elapsed_time > max_time:
             break
+        
+    # print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
+    
+
     return Ys, equality_time / (year * 1e9)
 
 if __name__ == '__main__':
@@ -158,4 +196,4 @@ if __name__ == '__main__':
     # Ys, eq = run_network(c.cycle, c.coreT, c.initY,
     #                      c.init_step, c.max_step, 
     #                      c.save_step, c.max_time)
-    Ys, eq = run_network('pp', 0.015)
+    Ys, eq = run_network('cno', 0.015)
