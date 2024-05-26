@@ -18,6 +18,7 @@ plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
 # Choc
 from simulation import run_network
+from matplotlib.colors import ListedColormap
 
 #%%
 rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
@@ -59,9 +60,15 @@ ax2.set_title('CNO-Cycle')
 #%%
 pp_dominance = (eq_pps <= eq_cnos)
 plt.figure()
-plt.pcolormesh(T9s*1e3, Zs, pp_dominance, cmap='cividis', ec='k', lw=0.1)
+
+T9s_mask = (12 < T9s*1e3) & (T9s*1e3 < 25)
+
+custom_cmap = ListedColormap(['firebrick', plt.get_cmap('cividis')(255)])
+plt.pcolormesh(T9s[T9s_mask]*1e3, Zs, pp_dominance[:,T9s_mask], cmap=custom_cmap)#, ec='k', lw=0.1)
+#plt.colorbar()
 plt.ylabel('Metallicity $Z/Z_\\mathrm{ISM}$', fontsize = 14)
 plt.xlabel('Temperature [MK]', fontsize = 14)
+plt.show()
 
 # %%
 plt.figure()
