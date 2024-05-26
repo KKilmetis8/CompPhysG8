@@ -23,8 +23,7 @@ from simulation import run_network
 rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
 
 T9s = rates_table[:14,0]
-Zs  = np.logspace(-1, 2, 10)
-
+Zs  = np.logspace(-1, 2, 10)#%%
 eq_pps  = -np.ones((len(Zs), len(T9s)))
 eq_cnos = -np.ones((len(Zs), len(T9s)))
 

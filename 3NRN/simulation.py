@@ -80,7 +80,7 @@ def run_network(cycle, coreT, initY = None,
     
     h = 1 / (init_step * year)
     hmax = 1/(max_step * year)
-    max_time = 12e9*year
+    max_time = max_time*year
     timesteps = int(max_time/(init_step*year))
     
     # Look up rates from table ------------------------------------------------
@@ -127,6 +127,7 @@ def run_network(cycle, coreT, initY = None,
     save_counter = 1
     savetimes = np.zeros(len(Ys))
     equality_flag = False
+    equality_time = max_time+1
     for i in range(1,timesteps):
         currentYs, h, conv_flag = newton_raphson(oldYs, inv_Jacobian, eq,
                                         args = (rates, h),)
@@ -146,19 +147,15 @@ def run_network(cycle, coreT, initY = None,
             
         if currentYs[-1] >= currentYs[0] and equality_flag == False:
             equality_flag = True
-            equality_time = elapsed_time / (year * 1e9)
+            equality_time = elapsed_time 
             
         if elapsed_time > max_time:
             break
-        
-    # print('Evo time', elapsed_time/(1e9*year), 'Gyrs')
-    
-
-    return Ys, equality_time
+    return Ys, equality_time / (year * 1e9)
 
 if __name__ == '__main__':
     # import config as c
     # Ys, eq = run_network(c.cycle, c.coreT, c.initY,
     #                      c.init_step, c.max_step, 
     #                      c.save_step, c.max_time)
-    Ys, eq = run_network('cno', 0.015)
+    Ys, eq = run_network('pp', 0.015)
