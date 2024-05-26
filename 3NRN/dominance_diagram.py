@@ -22,7 +22,7 @@ from simulation import run_network
 #%%
 rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
 
-T9s_table = rates_table[:14,0]
+T9s_table = rates_table[:11,0]
 
 T9s = np.linspace(T9s_table[0], T9s_table[-1], 30)
 Zs  = np.linspace(1, 1e2, 30)
@@ -40,8 +40,8 @@ for i,metallicity in tqdm(enumerate(Zs)):
             #print(j)
             continue
 
-np.save('eq_pps', eq_pps)
-np.save('eq_cnos', eq_cnos)
+np.save('eq_pps2', eq_pps)
+np.save('eq_cnos2', eq_cnos)
 
 #%%
 fig, (ax1, ax2) = plt.subplots(1,2)
@@ -59,7 +59,7 @@ ax2.set_title('CNO-Cycle')
 #%%
 pp_dominance = (eq_pps <= eq_cnos)
 plt.figure()
-plt.pcolormesh(T9s*1e3, Zs, pp_dominance, cmap='coolwarm', ec='k', lw=0.1)
+plt.pcolormesh(T9s*1e3, Zs, pp_dominance, cmap='cividis', ec='k', lw=0.1)
 plt.ylabel('Metallicity $Z/Z_\\mathrm{ISM}$', fontsize = 14)
 plt.xlabel('Temperature [MK]', fontsize = 14)
 

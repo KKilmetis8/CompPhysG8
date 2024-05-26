@@ -179,7 +179,7 @@ def run_network(cycle, coreT, initY = None,
             Ys[save_counter] = currentYs
             save_counter += 1
             
-        if currentYs[-1] >= currentYs[0] and ~equality_flag:
+        if currentYs[-1] >= currentYs[0] and not equality_flag:
             equality_flag = True
             equality_time = elapsed_time
             
@@ -196,4 +196,4 @@ if __name__ == '__main__':
     # Ys, eq = run_network(c.cycle, c.coreT, c.initY,
     #                      c.init_step, c.max_step, 
     #                      c.save_step, c.max_time)
-    Ys, eq = run_network('cno', 0.015)
+    Ys, eq = run_network('cno', 30e-3, 1, max_step = 1e5, max_time=1e9)

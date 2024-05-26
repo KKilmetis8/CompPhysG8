@@ -178,7 +178,7 @@ for i in tqdm(range(1,timesteps)):
         Ys[save_counter] = currentYs
         save_counter += 1
         
-    if currentYs[-1] >= currentYs[0] and equality_flag == False:
+    if currentYs[-1] >= currentYs[0] and not equality_flag:
         equality_flag = True
         equality_time = elapsed_time / (year * 1e9)
     
