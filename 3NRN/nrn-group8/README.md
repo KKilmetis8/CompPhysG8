@@ -88,16 +88,20 @@ For a simulation run for a range of temperatures and a range of metallicities, 3
 #### Example Outputs
 
 Example plots generated from pp-chain simulations for different star-types. 
+
 ![pp](image/README/pp.png)
 
 Example plots generated from CNO-cycle simulations for different star-types. 
+
 ![cno](image/README/cno.png)
 
 Example plot showing the ${}^{1}\mathrm{H}$-${}^{4}\mathrm{He}$ equality time as a function of temperature for both the pp-chain and CNO-cycle.
 Yellow is the CNO-cycle, while black is the pp-chain. The triangles indicate a lower limit, as the simulation took too long to converge. The maroon line indicates the turnover point for pp-chain to CNO-cycle at around $18\times10^{6}$ K.
+
 ![teq](image/README/teq.png)
 
 Example dominance plot generated from a series of simulations varying over temperature and metallicity. Shows which reaction network dominates when.
+
 ![dominance](image/README/dominance.png)
 
 ## Other Files
