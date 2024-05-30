@@ -29,9 +29,11 @@ Running a simulation consists mainly of two steps:
 
 * `init_abunds`: The initial abundances to use in the simulation. Can be preset ISM abundances, ISM abundances with a different metallicity, or custom abundances.
 
-* `max_time`: The maximum number of steps the simulation is run for.
+* `init_step`: The initial size of the timestep in years.
 
-* `max_step`: The maximum size of the timestep.
+* `max_step`: The maximum size of the timestep in years.
+
+* `max_time`: The maximum number of steps the simulation is run for in yearsa.
 
 `config.py` also contains the following Quality of Life parameters:
 
@@ -65,20 +67,44 @@ For a simulation run for a single temperature and metallicity, 2 outputs will be
 
 * `pp_evol.csv` or `cno_evol.csv`: Contains an array storing the times at which the abundances were saved in the first column, in seconds, and the abundances themselves in the other columns. Number of columns is dependent on which reaction network was run; 4+1 columns for the pp-chain, 8+1 for the CNO-cycle. 
 
-* `pp_evol.pdf` or `cno_evol.pdf`:
+* `pp_evol.pdf` or `cno_evol.pdf`: Contains a plot showing the time-evolution of the abundances calculated during the simulation. 
 
 #### Outputs for `kind = 'equality time'`
 
+For a simulation run for a range of temperatures and a constant metallicity, 1 output will be produced:
+
+* `t_eq_diagram.pdf`: Contains a plot showing the ${}^{1}\mathrm{H}$-${}^{4}\mathrm{He}$ equality time as a function of temperature for both the pp-chain and CNO-cycle.
+
 #### Outputs for `kind = 'dominance'`
 
+For a simulation run for a range of temperatures and a range of metallicities, 3 outputs will be produced:
+
+* `pp_equality_times.csv`: Contains an array with the first column corresponding to the different metallicities used in the simulation and the other columns corresponding to the equality times for the pp-chain. The used temperatures are displayed in the header.
+
+* `cno_equality_times.csv`: Contains an array with the first column corresponding to the different metallicities used in the simulation and the other columns corresponding to the equality times for the CNO-cycle. The used temperatures are displayed in the header.
+
+* `dominance_diagram.pdf`: Contains a plot showing which reaction network dominates for which temperature and metallicity.
+
 #### Example Outputs
+
+Example plots generated from pp-chain simulations for different star-types. 
+![pp](image/README/pp.png)
+
+Example plots generated from CNO-cycle simulations for different star-types. 
+![cno](image/README/cno.png)
+
+Example plot showing the ${}^{1}\mathrm{H}$-${}^{4}\mathrm{He}$ equality time as a function of temperature for both the pp-chain and CNO-cycle.
+Yellow is the CNO-cycle, while black is the pp-chain. The triangles indicate a lower limit, as the simulation took too long to converge. The maroon line indicates the turnover point for pp-chain to CNO-cycle at around $18\times10^{6}$ K.
+![t_eq](image/README/t_eq.png)
+
+Example dominance plot generated from a series of simulations varying over temperature and metallicity. Shows which reaction network dominates when.
+![dominance](image/README/dominance.png)
 
 ## Other Files
 
 While the user only has to interact with `config.py`, the rest of the constituent parts of the code are summarized here.
 
-1. `pp.py` contains functions used during simulations of the pp-chain: the vector-function to find the root for, its Jacobian, and the Newton-Raphson method.
-2. `cno.py` contains functions used during simulations of the CNO-chain: the vector-function to find the root for, its Jacobian, and the Newton-Raphson method.
-3. `ISM_abundances.py` contains the default values used for abundances for each element/isotope found in the pp-chain and CNO-cycle, as if they are in the Inter-Stellar Medium (ISM).
-4. `NRN_rates.csv` contains a table giving the reaction-rates for the pp-chain and CNO-cycle, for a series of temperatures normalized to $10^9$ K. These rates and temperatures were taken from Angulo et al. (1999).
-5. `density_interp.py` calculates the mean core density for given temperatures, which are used to scale the nuclear reaction-rates appropriately.
+1. `functions` contains a series of `.py` files, which each contains functions necessary to run the simulations, grouped by similarity.
+2. `ISM_abundances.py` contains the default values used for abundances for each element/isotope found in the pp-chain and CNO-cycle, as if they are in the ISM.
+3. `NRN_rates.csv` contains a table giving the reaction-rates for the pp-chain and CNO-cycle, for a series of temperatures normalized to $10^9$ K. These rates and temperatures were taken from Angulo et al. (1999) and Kondev et al. (2021).
+4. `prelude.py` contains some basic setup run before the simulation(s) start(s).
