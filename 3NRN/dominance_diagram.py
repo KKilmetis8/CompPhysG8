@@ -26,6 +26,7 @@ rates_table = np.loadtxt("NRN_Rates.csv", skiprows=1, delimiter=',')
 T9s_table = rates_table[:11,0]
 
 T9s = np.linspace(T9s_table[0], T9s_table[-1], 30)
+T9s = np.linspace(12, 25, 60)*1e-3
 Zs  = np.linspace(1, 1e2, 30)
 
 eq_pps  = -np.ones((len(Zs), len(T9s)))
@@ -33,16 +34,16 @@ eq_cnos = -np.ones((len(Zs), len(T9s)))
 
 for i,metallicity in tqdm(enumerate(Zs)):
     for j,T9 in enumerate(T9s):
-        _, eq_pps[i,j] = run_network('pp', T9, max_step = 1e6, max_time=2e10)
+        _, eq_pps[i,j] = run_network('pp', T9, max_step = 1e6, max_time=1e11)
         try:
             _, eq_cnos[i,j] = run_network('cno', T9, initY = float(metallicity), 
-                                   max_step = 1e6, max_time=2e10)
+                                   max_step = 1e6, max_time=1e11)
         except:
             #print(j)
             continue
 
-np.save('eq_pps2', eq_pps)
-np.save('eq_cnos2', eq_cnos)
+np.save('eq_pps4', eq_pps)
+np.save('eq_cnos4', eq_cnos)
 
 #%%
 fig, (ax1, ax2) = plt.subplots(1,2)
