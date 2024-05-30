@@ -48,12 +48,13 @@ def pp_evol(Ys, equality_time, savetimes):
 
 
     plt.grid()
-    plt.ylim(1e-8,10)
+    plt.ylim(1e-17,10)
     plt.xlim(1e-3,1e3)
     plt.yscale('log')
     plt.xscale('log')
     plt.ylabel('Abundance', fontsize = 14)
     plt.xlabel('time [Gyrs]', fontsize = 14)
+    plt.legend()
     plt.savefig(f'sims/{simname}/pp_evol.pdf')
     plt.close(fig)
     
@@ -89,12 +90,12 @@ def cno_evol(Ys, equality_time, savetimes):
                 , marker = 'h', c = 'gold', ec = 'dodgerblue', 
                 linewidth = 2, 
                 s = 200, zorder = 4)
-
     plt.yscale('log')
     plt.xscale('log')
     plt.ylim(1e-17,2)
     plt.ylabel('Abundance', fontsize = 14)
     plt.xlabel('time [Gyr]', fontsize = 14)
+    plt.legend()
     plt.savefig(f'sims/{simname}/cno_evol.pdf')
     plt.close(fig)
 

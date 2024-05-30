@@ -73,6 +73,7 @@ Specifies parameters of simulation.
         recommended to be at least 3 orders of magnitude than max_time.
         
     max_time, float: The total time to evolve for, in years.
+        default, 50 Gyrs.
     
     temperatures, list | np.ndarray: List or numpy array of 
         positive floats giving the temperatures for which to
@@ -98,7 +99,7 @@ kind    = 'single' # 'equality time', 'dominance'
 
 init_step = 1e-5 # yrs
 max_step = 1e5 # yrs 
-max_time = 5e9 # yrs | 5 Gyrs
+max_time = 50e9 # yrs | 50 Gyrs
 
 loud    = True
 simname = None
