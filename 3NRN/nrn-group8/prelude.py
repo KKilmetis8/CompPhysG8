@@ -21,7 +21,7 @@ else:
 simname = c.simname
 if simname is None:
     time_of_creation = time.strftime('%d-%h-%H%M%S', time.localtime())
-    simname = f'{c.init_grid}_{c.kind}_at_{time_of_creation}'
+    simname = f'{c.kind}_at_{time_of_creation}'
 
 # plotting stuff
 import matplotlib.pyplot as plt

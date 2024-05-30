@@ -13,7 +13,7 @@ Specifies parameters of simulation.
         make sure to set kind = 'single' when doing so.
 
         In units of Giga-Kelvins
-        Default: 0.015 GK
+        Default: 0.3 GK
     
     metallicity, float | int: A positive number giving the
         core metallicity of the simulated star. This parameter 
@@ -27,7 +27,7 @@ Specifies parameters of simulation.
         during the simulation, can either be 'pp' for the
         pp-chain or 'cno' for the CNO-cycle.
 
-        Default: 'pp'
+        Default: 'cno'
 
     init_abunds = str | np.ndarray: Initial abundances of the species 
         in the simulated stellar core. Can either be 'ism' for ISM
@@ -82,10 +82,10 @@ Specifies parameters of simulation.
         Default: numpy.linspace(1, 1e2, 10)
 """
 
-temperature = 0.015 #GK
+temperature = 0.3 #GK
 metallicity = 1 #Z_ism
 cycle       = 'pp'
-init_abunds = 'ism'
+init_abunds = 'cno'
 
 loud    = True
 simname = None

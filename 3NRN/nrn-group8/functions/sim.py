@@ -11,7 +11,7 @@ import numpy as np
 
 # Choc
 import ISM_abudances as ism
-from den_interp import den_of_T
+from functions.den_interp import den_of_T
 
 def normalize_abuds(Ys, cycle):
     '''
@@ -124,7 +124,7 @@ def run_network(cycle, coreT, initY = None,
     # Get the desired cycle ---------------------------------------------------
 
     if cycle == 'pp':
-        from pp import eq, inv_Jacobian, newton_raphson
+        from functions.pp import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 4))
         rates = all_rates[:3]
         if initY is None:
@@ -132,7 +132,7 @@ def run_network(cycle, coreT, initY = None,
         else:
             Ys[0] = initY
     elif cycle == 'cno':
-        from cno import eq, inv_Jacobian, newton_raphson
+        from functions.cno import eq, inv_Jacobian, newton_raphson
         Ys = np.zeros(( int(max_time / save_step) + 1 , 8))
         rates = all_rates[3:]
         if initY is None:
