@@ -66,7 +66,14 @@ Specifies parameters of simulation.
         for both pp-chain and CNO-cycle, over each temperature-metallicity 
         combination given in `temperatures` and `metallicities`. Finds which
         networks dominates at which temperature and metallicity.
-
+    
+    init_step, float: The initial timestep used for the simulation, in years
+    
+    max_step, float: The maximum allowed timestep to increase to, in years.
+        recommended to be at least 3 orders of magnitude than max_time.
+        
+    max_time, float: The total time to evolve for, in years.
+    
     temperatures, list | np.ndarray: List or numpy array of 
         positive floats giving the temperatures for which to
         run simulations if kind = 'equality time' or 'dominance'.
@@ -82,14 +89,19 @@ Specifies parameters of simulation.
         Default: numpy.linspace(1, 1e2, 10)
 """
 
-temperature = 0.3 #GK
+temperature = 0.03 #GK
 metallicity = 1 #Z_ism
 cycle       = 'pp'
-init_abunds = 'cno'
+init_abunds = 'ism'
+
+kind    = 'single' # 'equality time', 'dominance'
+
+init_step = 1e-5 # yrs
+max_step = 1e5 # yrs 
+max_time = 5e9 # yrs | 5 Gyrs
 
 loud    = True
 simname = None
-kind    = 'single' # 'equality time', 'dominance'
 
 from numpy import linspace
 temperatures  = linspace(12, 25, 10)*1e-3

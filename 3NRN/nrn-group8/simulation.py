@@ -36,10 +36,13 @@ elif c.kind == 'equality time':
     cno_T9s_bad = []
     pp_eqs = []
     for T9 in tqdm(c.temperatures) if c.loud else c.temperatures:
-        _, eqpp, _ = run_network('pp', T9, max_step = 1e8, max_time=1e12)
+        _, eqpp, _ = run_network('pp', T9, init_step = c.init_step,
+                                 max_step = c.max_step, max_time=c.max_time)
         pp_eqs.append(eqpp)
         try:
-            _, eqcno, _ = run_network('cno', T9, initY = c.metallicity, max_step = 1e7, max_time=1e12)
+            _, eqcno, _ = run_network('cno', T9, initY = c.metallicity, 
+                                      init_step = c.init_step,
+                                      max_step = c.max_step, max_time=c.max_time)
             if eqcno >= 1e12/1e9:
                 cno_T9s_bad.append(T9)
                 cno_eqs_bad.append(1100)
@@ -61,10 +64,15 @@ elif c.kind == 'dominance':
 
     for i,metallicity in tqdm(enumerate(c.metallicities)) if c.loud else enumerate(c.metallicities):
         for j,T9 in enumerate(c.temperatures):
-            _, eq_pps[i,j], _ = run_network('pp', T9, max_step = 1e6, max_time=1e11)
+            _, eq_pps[i,j], _ = run_network('pp', T9, max_step = c.max_step,
+                                            init_step = c.init_step,
+                                            max_time=c.max_time)
             try:
-                _, eq_cnos[i,j], _ = run_network('cno', T9, initY = float(metallicity), 
-                                    max_step = 1e6, max_time=1e11)
+                _, eq_cnos[i,j], _ = run_network('cno', T9, 
+                                                 initY = float(metallicity), 
+                                                 init_step = c.init_step,
+                                                 max_step = c.max_step, 
+                                                 max_time = c.max_time)
             except:
                 continue
     
