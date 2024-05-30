@@ -21,13 +21,13 @@ if c.kind == 'single':
     if c.cycle == 'pp':
         np.savetxt(f'sims/{p.simname}/pp_evol.csv', np.hstack((savetimes.reshape((len(Ys),1)), Ys)),
                 delimiter=",", header=('Abundance evolution pp-chain (t_eq = {t_eq} Gyr)\n'
-                'time [Gyr], 1H, 2H, 3He, 4He'))
+                'time [s], 1H, 2H, 3He, 4He'))
         plot.pp_evol(Ys, t_eq, savetimes)
     if c.cycle == 'cno':
         plot.cno_evol(Ys, t_eq, savetimes)
         np.savetxt(f'sims/{p.simname}/cno_evol.csv', np.hstack((savetimes.reshape((len(Ys),1)), Ys)),
                 delimiter=",", header=('Abundance evolution CNO-cycle (t_eq = {t_eq} Gyr)\n'
-                'time [Gyr], 1H, 12C, 13N, 13C, 14N, 15O, 15N, 4He'))
+                'time [s], 1H, 12C, 13N, 13C, 14N, 15O, 15N, 4He'))
 
 elif c.kind == 'equality time':
     cno_eqs = []
