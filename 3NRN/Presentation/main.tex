@@ -1,0 +1,192 @@
+\documentclass[10pt,xcolor=svgnames,table]{beamer} %Beamer
+% #######
+% Fonts
+% #######
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{palatino} % font type
+\usefonttheme{metropolis} %Type of slides
+\usefonttheme[onlymath]{serif} %font type Mathematical expressions
+\usetheme[progressbar=frametitle,titleformat frame=smallcaps,numbering=counter]{metropolis} %This adds a bar at the beginning of each section.
+\useoutertheme[subsection=false]{miniframes} %Circles in the top of each frame, showing the slide of each section you are at
+
+% ###############################
+% Packages
+% ###############################
+\usepackage{appendixnumberbeamer} %enumerate each slide without counting the appendix
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage[scale=2]{ccicons}
+\usepackage{pgfplots}
+\usepgfplotslibrary{dateplot}
+\usepackage{geometry}
+\usepackage{xspace}
+\newcommand{\themename}{\textbf{\textsc{bluetemp}\xspace}}%metropolis}}\xspace}
+\usepackage{tcolorbox}
+\usepackage{amsmath,amssymb}
+\usepackage{slashed}
+\usepackage{cite}
+\usepackage{relsize}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{soul} % strikethrough text
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={EXA},
+    pdfpagemode=FullScreen,
+    }
+    
+% #######################
+% Custom Colors
+% #######################
+% Titles
+\definecolor{mydarkgreen}{rgb}{0, 0.33, 0}
+\definecolor{mydarkpurple}{rgb}{0.35, 0, 0.33}
+\definecolor{darkgreymazi}{rgb}{0.15, 0.15, 0.15}
+\definecolor{mydarkmustard}{rgb}{0.902, 0.745, 0.016}
+\definecolor{mydarkbrick}{HTML}{8B0000}
+% Progress bar, 
+\definecolor{darkergreymazi}{rgb}{0.08, 0.08, 0.08}
+\definecolor{mydarkergreen}{rgb}{0, 0.25, 0}
+\definecolor{mydarkerpurple}{rgb}{0.25, 0, 0.23}
+\definecolor{mydarkermustard}{rgb}{0.69, 0.573, 0.016}
+\definecolor{mydarkerbrick}{HTML}{6e1818}
+\definecolor{hillelblue}{HTML}{335B7D}
+\definecolor{hilleldarkerblue}{HTML}{1E364B}
+
+% Accent
+\definecolor{myorange}{rgb}{1,0.45,0}
+\definecolor{mygold}{rgb}{0.55,0.5,0.05}
+\definecolor{mywhitesmoke}{rgb}{0.961, 0.961, 0.961}
+% Settinng the colors
+\setbeamercolor{progress bar}{fg=mywhitesmoke} % Progress bar on sections.
+\setbeamercolor{title separator}{fg=mywhitesmoke} % This is the line colour in the title slide
+\setbeamercolor{structure}{fg=black} % Colour of the text of structure, numbers, items, blah. Not the big text.
+\setbeamercolor{normal text}{fg=black} % Colour of normal text
+\setbeamercolor{alerted text}{fg=DarkRed!60!Gainsboro} % Color of the alert box
+\setbeamercolor{example text}{fg=mygold} % Colour of the Example block text
+
+% These are the colours of the background. Being this the main combination and so one. 
+\setbeamercolor{palette primary}{bg=darkgreymazi, fg=white} 
+\setbeamercolor{palette secondary}{bg=darkgreymazi, fg=white}
+\setbeamercolor{palette tertiary}{bg=darkergreymazi, fg=white}
+\setbeamercolor{section in toc}{fg=black} %Color of the text in the table of contents (toc)
+    
+% Label colors
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFont{black}{\color{black}}
+\captionsetup{font=scriptsize,labelfont=scriptsize, format=hang}
+
+\newcommand{\changeline}{
+    \\ \vspace{5pt}
+  }%
+
+% ###############################
+% Boxing shit in eqs
+% ###############################
+\newcommand{\commentedbox}[2]{%
+  \mbox{
+    \begin{tabular}[t]{@{}c@{}}
+    $\boxed{\displaystyle#1}$\\
+    #2
+    \end{tabular}%
+  }%
+}
+
+% ###############################
+% Titling
+% ###############################
+\title{The pp-Chain vs CNO-Cycle}
+\author[Name]{Konstantinos Kilmetis, Diederick Vroom \vspace{5pt}} 
+\subtitle{A Descent into Nuclear Reaction Turmoil}
+\date{s3745597, s2277387}
+\titlegraphic{\vspace{0.4cm}\hfill\includegraphics[scale=0.2]{strw.png}}
+
+% ###############################
+% The actual fucking document
+% ###############################
+\begin{document}
+{
+\setbeamercolor{background canvas}{bg=darkgreymazi, fg=white}
+\setbeamercolor{normal text}{fg=white}
+\maketitle
+}% This is the colour of the first slide. bg= background and fg=foreground
+\metroset{titleformat frame=smallcaps} % This changes the titles for small caps
+
+% \begin{frame}{Outline}
+%   \setbeamertemplate{section in toc}[sections numbered] % This is numbering the sections
+%   \tableofcontents[hideallsubsections] % You can comment this line if you want to show the subsections in the table of contents
+% \end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ----------------------------- Hillel -------------------------------------------------------------------
+% Color change
+\setbeamercolor{progress bar}{fg=myorange}
+\setbeamercolor{title separator}{fg=myorange} 
+\setbeamercolor{palette tertiary}{bg=hilleldarkerblue, fg=white}
+\setbeamercolor{palette primary}{bg=hillelblue, fg=white} 
+\include{intro.tex}
+
+\setbeamercolor{progress bar}{fg=myorange}
+\setbeamercolor{title separator}{fg=myorange} 
+\setbeamercolor{palette tertiary}{bg=mydarkergreen, fg=white}
+\setbeamercolor{palette primary}{bg=mydarkgreen, fg=white} 
+\include{methods.tex}
+
+%%%% Results %%%%%%%%%%%%%%%%%%
+\setbeamercolor{progress bar}{fg=mygold} % Progress bar on sections.
+\setbeamercolor{title separator}{fg=mygold} % This is the line colour in the title slide
+\setbeamercolor{palette tertiary}{bg=mydarkerpurple, fg=white}
+\setbeamercolor{palette primary}{bg=mydarkpurple, fg=white} 
+\setbeamercolor{normal text}{fg=black, bg=mywhitesmoke}
+\include{results.tex}
+
+% ---------- Discussion
+% Color change
+\setbeamercolor{palette tertiary}{bg=mydarkerbrick, fg=white}
+\setbeamercolor{palette primary}{bg=mydarkbrick, fg=white} 
+\setbeamercolor{progress bar}{fg=black}
+\include{summary.tex}
+
+
+% ----------------------------- Finish ----------------------------------------------------------------------
+% Back to Grey
+\setbeamercolor{palette primary}{bg=darkgreymazi, fg=white} 
+\setbeamercolor{palette secondary}{bg=darkgreymazi, fg=white}
+\setbeamercolor{palette tertiary}{bg=darkergreymazi, fg=white}
+\setbeamercolor{progress bar}{fg=mywhitesmoke}
+\setbeamercolor{title separator}{fg=mywhitesmoke} 
+\setbeamertemplate{frame footer}{ \scriptsize }
+\captionsetup{font=scriptsize,labelfont={white,scriptsize}}
+\begin{frame}[standout]{Luigi Picture}
+    \vspace{-10pt}
+    \Large Thank you for your time! \\
+    \vspace{5pt} \normalsize As is tradition, you win a picture of Luigi.
+     \begin{figure}
+        \centering
+        \includegraphics[scale = 0.3]{luigi-forestigi.png}
+         \caption{\textcolor{white}{Luigi is very happy you sat through that and thanks you for your attention}}
+    \end{figure}
+\end{frame}
+\appendix
+
+% ----------------------------- Question slides ----------------------------------------------------------------
+\begin{frame}{Extra Slides}
+\Large
+maybe talk about deuterium
+\end{frame}
+
+\begin{frame}{Extra Slides}
+\Large Reaction Rates
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{figs/Reaction_Rates.pdf}
+    %\caption{Reaction Rates}
+    %\label{fig:enter-label}
+\end{figure}
+\end{frame}
+
+\end{document}
